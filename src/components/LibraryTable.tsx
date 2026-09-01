@@ -4,6 +4,7 @@ import {
   ArrowUp,
   ArrowDown,
   FileAudio,
+  FolderOpen,
   AlertTriangle,
   Clock,
   Disc,
@@ -22,6 +23,9 @@ interface LibraryTableProps {
   onSelectTrack: (trackId: string, multi: boolean) => void;
   onSelectAll: () => void;
   onPlayTrack: (track: Track) => void;
+  onOpenFolder?: () => void;
+  libraryPath?: string | null;
+  searchQuery?: string;
 }
 
 export const LibraryTable: React.FC<LibraryTableProps> = ({
@@ -35,6 +39,9 @@ export const LibraryTable: React.FC<LibraryTableProps> = ({
   onSelectTrack,
   onSelectAll,
   onPlayTrack,
+  onOpenFolder,
+  libraryPath,
+  searchQuery,
 }) => {
   const formatDuration = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return '0:00';
@@ -129,9 +136,41 @@ export const LibraryTable: React.FC<LibraryTableProps> = ({
           <tbody className="divide-y divide-border/40">
             {tracks.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-12 text-center text-muted-foreground">
-                  <FileAudio className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                  No audio tracks found matching current filter or in selected library.
+                <td colSpan={9} className="py-16 text-center text-muted-foreground">
+                  {!libraryPath ? (
+                    <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-3">
+                      <div className="p-3.5 bg-primary/10 rounded-2xl text-primary">
+                        <FolderOpen className="w-8 h-8" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-foreground">No Music Folder Selected</h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Open a local directory containing your MP3 or FLAC audio files to scan your collection and manage tags.
+                        </p>
+                      </div>
+                      {onOpenFolder && (
+                        <button
+                          onClick={onOpenFolder}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold rounded-lg shadow-sm transition-colors mt-2"
+                        >
+                          <FolderOpen className="w-4 h-4" />
+                          <span>Open Music Folder</span>
+                        </button>
+                      )}
+                    </div>
+                  ) : searchQuery ? (
+                    <div className="flex flex-col items-center justify-center space-y-2 py-4">
+                      <FileAudio className="w-8 h-8 opacity-40 text-primary" />
+                      <p className="text-xs">
+                        No audio tracks found matching &ldquo;<strong className="text-foreground">{searchQuery}</strong>&rdquo;
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center space-y-2 py-4">
+                      <FileAudio className="w-8 h-8 opacity-40 text-primary" />
+                      <p className="text-xs">No MP3 or FLAC audio tracks found in the selected folder.</p>
+                    </div>
+                  )}
                 </td>
               </tr>
             ) : (

@@ -98,6 +98,9 @@ export const App: React.FC = () => {
             onSelectTrack={library.toggleSelectTrack}
             onSelectAll={library.selectAll}
             onPlayTrack={handlePlayFromLibrary}
+            onOpenFolder={handleOpenFolder}
+            libraryPath={library.libraryPath}
+            searchQuery={library.searchQuery}
           />
         )}
 
