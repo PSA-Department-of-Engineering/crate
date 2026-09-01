@@ -7,6 +7,7 @@ import {
   Playlist,
   PlayerState,
   CrateBridge,
+  EmbeddedArtwork,
 } from '../src/models/types';
 
 const bridge: CrateBridge = {
@@ -18,6 +19,10 @@ const bridge: CrateBridge = {
 
   scanLibrary: async (folderPath: string): Promise<{ tracks: Track[]; corruptFiles: string[] }> => {
     return await ipcRenderer.invoke('library:scan', folderPath);
+  },
+
+  getTrackArtwork: async (filePath: string): Promise<EmbeddedArtwork | null> => {
+    return await ipcRenderer.invoke('metadata:get-artwork', filePath);
   },
 
   saveTrackTags: async (filePath: string, tags: TagUpdates): Promise<Track> => {

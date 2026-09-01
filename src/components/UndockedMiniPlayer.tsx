@@ -31,6 +31,31 @@ export const UndockedMiniPlayer: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (state.currentTrack && !state.currentTrack.picture && typeof window !== 'undefined' && window.crateBridge?.getTrackArtwork) {
+      let isSubscribed = true;
+      window.crateBridge.getTrackArtwork(state.currentTrack.filePath).then(picture => {
+        if (isSubscribed && picture) {
+          setState(prev => {
+            if (prev.currentTrack) {
+              return {
+                ...prev,
+                currentTrack: {
+                  ...prev.currentTrack,
+                  picture,
+                },
+              };
+            }
+            return prev;
+          });
+        }
+      }).catch(() => {});
+      return () => {
+        isSubscribed = false;
+      };
+    }
+  }, [state.currentTrack?.id]);
+
   const sendCommand = (action: string, payload?: any) => {
     if (typeof window !== 'undefined' && window.crateBridge) {
       window.crateBridge.sendPlayerState({ isPlaying: action === 'play' ? true : action === 'pause' ? false : state.isPlaying });

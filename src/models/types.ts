@@ -115,6 +115,7 @@ export interface CrateBridge {
   isElectron: boolean;
   selectLibraryFolder: () => Promise<string | null>;
   scanLibrary: (folderPath: string) => Promise<{ tracks: Track[]; corruptFiles: string[] }>;
+  getTrackArtwork: (filePath: string) => Promise<EmbeddedArtwork | null>;
   saveTrackTags: (filePath: string, tags: TagUpdates) => Promise<Track>;
   batchSaveTags: (filePaths: string[], tags: TagUpdates) => Promise<Track[]>;
   getVolumes: () => Promise<VolumeInfo[]>;

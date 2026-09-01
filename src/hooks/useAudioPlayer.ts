@@ -146,6 +146,24 @@ export function useAudioPlayer() {
 
       setState(prev => ({ ...prev, ...newState }));
       broadcastState(newState);
+
+      // Lazy-load artwork on demand if not already loaded
+      if (!track.picture && typeof window !== 'undefined' && window.crateBridge?.getTrackArtwork) {
+        window.crateBridge.getTrackArtwork(track.filePath).then(picture => {
+          if (picture) {
+            setState(prev => {
+              if (prev.currentTrack?.id === track.id) {
+                const updatedTrack = { ...prev.currentTrack, picture };
+                broadcastState({ currentTrack: updatedTrack });
+                return { ...prev, currentTrack: updatedTrack };
+              }
+              return prev;
+            });
+          }
+        }).catch(err => {
+          console.warn('Failed to lazy-load track artwork:', err);
+        });
+      }
     } else if (state.currentTrack) {
       audioRef.current.play().catch(() => {});
       setState(prev => ({ ...prev, isPlaying: true }));

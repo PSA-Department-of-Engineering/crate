@@ -60,12 +60,26 @@ export const TagEditor: React.FC<TagEditorProps> = ({
       setDiscNumber(singleTrack.discNumber ? singleTrack.discNumber.toString() : '');
       setTotalDiscs(singleTrack.totalDiscs ? singleTrack.totalDiscs.toString() : '');
 
+      let isSubscribed = true;
       if (singleTrack.picture) {
         setArtworkData(singleTrack.picture.data);
         setArtworkFormat(singleTrack.picture.format);
       } else {
         setArtworkData(null);
+        if (typeof window !== 'undefined' && window.crateBridge?.getTrackArtwork && singleTrack.filePath) {
+          window.crateBridge.getTrackArtwork(singleTrack.filePath).then(pic => {
+            if (isSubscribed && pic) {
+              setArtworkData(pic.data);
+              setArtworkFormat(pic.format);
+            }
+          }).catch(err => {
+            console.warn('Failed to load artwork for TagEditor:', err);
+          });
+        }
       }
+      return () => {
+        isSubscribed = false;
+      };
     } else if (isBatch) {
       // Find common values across selected tracks
       const first = selectedTracks[0];

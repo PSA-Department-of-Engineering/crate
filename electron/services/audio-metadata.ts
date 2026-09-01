@@ -8,18 +8,19 @@ export class AudioMetadataService {
   /**
    * Reads metadata from an audio file (.mp3 or .flac) and returns a Track object.
    */
-  async readTrack(filePath: string): Promise<Track> {
+  async readTrack(filePath: string, options: { skipCovers?: boolean } = { skipCovers: true }): Promise<Track> {
     const stats = await fs.promises.stat(filePath);
     const ext = path.extname(filePath).toLowerCase();
     const format: AudioFormat = ext === '.flac' ? 'flac' : 'mp3';
+    const skipCovers = options?.skipCovers ?? true;
 
     try {
-      const metadata = await mm.parseFile(filePath, { duration: true, skipCovers: false });
+      const metadata = await mm.parseFile(filePath, { duration: true, skipCovers });
       const common = metadata.common;
       const formatInfo = metadata.format;
 
       let picture: EmbeddedArtwork | undefined = undefined;
-      if (common.picture && common.picture.length > 0) {
+      if (!skipCovers && common.picture && common.picture.length > 0) {
         const pic = common.picture[0];
         const base64 = Buffer.from(pic.data).toString('base64');
         picture = {
@@ -68,6 +69,26 @@ export class AudioMetadataService {
   }
 
   /**
+   * Reads and extracts embedded artwork on-demand for a single track.
+   */
+  async getArtwork(filePath: string): Promise<EmbeddedArtwork | null> {
+    try {
+      const metadata = await mm.parseFile(filePath, { duration: false, skipCovers: false });
+      if (metadata.common.picture && metadata.common.picture.length > 0) {
+        const pic = metadata.common.picture[0];
+        const base64 = Buffer.from(pic.data).toString('base64');
+        return {
+          format: pic.format || 'image/jpeg',
+          data: `data:${pic.format || 'image/jpeg'};base64,${base64}`,
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Updates tags on an MP3 or FLAC file on disk without modifying audio stream data.
    */
   async writeTrackTags(filePath: string, updates: TagUpdates): Promise<Track> {
@@ -80,7 +101,7 @@ export class AudioMetadataService {
     }
 
     // Re-read file to return updated Track model
-    return await this.readTrack(filePath);
+    return await this.readTrack(filePath, { skipCovers: false });
   }
 
   /**

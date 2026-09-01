@@ -32,7 +32,7 @@ export class LibraryScannerService {
       }
 
       try {
-        const track = await this.metadataService.readTrack(filePath);
+        const track = await this.metadataService.readTrack(filePath, { skipCovers: true });
         if (track.isCorrupt) {
           corruptFiles.push(filePath);
         }
