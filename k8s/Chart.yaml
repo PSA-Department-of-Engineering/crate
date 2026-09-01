@@ -1,0 +1,5 @@
+apiVersion: v2
+name: crate
+description: "Windows desktop music manager and car sync engine for MP3/FLAC collections"
+type: application
+version: 0.1.0
