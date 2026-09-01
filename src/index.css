@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --accent: 160 60% 92%;
+    --accent-foreground: 160 84% 25%;
+    --background: 40 33% 97%;
+    --border: 40 15% 88%;
+    --card: 0 0% 100%;
+    --card-foreground: 150 10% 15%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --foreground: 150 10% 15%;
+    --input: 40 15% 88%;
+    --muted: 40 20% 94%;
+    --muted-foreground: 150 5% 45%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --radius: 0.75rem;
+    --ring: 160 84% 39%;
+    --secondary: 40 25% 93%;
+    --secondary-foreground: 150 10% 25%;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Custom draggable header */
+.app-draggable-region {
+  -webkit-app-region: drag;
+}
+
+.app-non-draggable-region {
+  -webkit-app-region: no-drag;
+}

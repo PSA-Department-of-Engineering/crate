@@ -1,0 +1,95 @@
+import { contextBridge, ipcRenderer } from 'electron';
+import {
+  Track,
+  TagUpdates,
+  VolumeInfo,
+  SyncPlan,
+  Playlist,
+  PlayerState,
+  CrateBridge,
+} from '../src/models/types';
+
+const bridge: CrateBridge = {
+  isElectron: true,
+
+  selectLibraryFolder: async (): Promise<string | null> => {
+    return await ipcRenderer.invoke('library:select-folder');
+  },
+
+  scanLibrary: async (folderPath: string): Promise<{ tracks: Track[]; corruptFiles: string[] }> => {
+    return await ipcRenderer.invoke('library:scan', folderPath);
+  },
+
+  saveTrackTags: async (filePath: string, tags: TagUpdates): Promise<Track> => {
+    return await ipcRenderer.invoke('tags:save', { filePath, tags });
+  },
+
+  batchSaveTags: async (filePaths: string[], tags: TagUpdates): Promise<Track[]> => {
+    return await ipcRenderer.invoke('tags:batch-save', { filePaths, tags });
+  },
+
+  getVolumes: async (): Promise<VolumeInfo[]> => {
+    return await ipcRenderer.invoke('sync:get-volumes');
+  },
+
+  analyzeSync: async (options: {
+    sourceTracks: Track[];
+    targetVolumePath: string;
+    scope: 'all' | 'playlists' | 'albums';
+    selectedPlaylists?: Playlist[];
+    selectedAlbums?: string[];
+  }): Promise<SyncPlan> => {
+    return await ipcRenderer.invoke('sync:analyze', options);
+  },
+
+  executeSync: async (options: {
+    plan: SyncPlan;
+    targetVolumePath: string;
+    pruneStale: boolean;
+  }): Promise<{ success: boolean; copied: number; deleted: number; errors: string[] }> => {
+    return await ipcRenderer.invoke('sync:execute', options);
+  },
+
+  exportPlaylist: async (options: {
+    playlistName: string;
+    tracks: Track[];
+    targetDir: string;
+    relativeRoot?: string;
+  }): Promise<string> => {
+    return await ipcRenderer.invoke('playlist:export', options);
+  },
+
+  undockPlayer: async (): Promise<void> => {
+    await ipcRenderer.invoke('player:undock');
+  },
+
+  dockPlayer: async (): Promise<void> => {
+    await ipcRenderer.invoke('player:dock');
+  },
+
+  onPlayerCommand: (callback: (cmd: { action: string; payload?: any }) => void) => {
+    const subscription = (_event: any, cmd: any) => callback(cmd);
+    ipcRenderer.on('player:command', subscription);
+    return () => {
+      ipcRenderer.removeListener('player:command', subscription);
+    };
+  },
+
+  sendPlayerState: (state: Partial<PlayerState>) => {
+    ipcRenderer.send('player:state-change', state);
+  },
+
+  onPlayerState: (callback: (state: Partial<PlayerState>) => void) => {
+    const subscription = (_event: any, state: any) => callback(state);
+    ipcRenderer.on('player:state-sync', subscription);
+    return () => {
+      ipcRenderer.removeListener('player:state-sync', subscription);
+    };
+  },
+
+  windowControl: (action: 'minimize' | 'maximize' | 'close') => {
+    ipcRenderer.send('window:control', action);
+  },
+};
+
+contextBridge.exposeInMainWorld('crateBridge', bridge);
