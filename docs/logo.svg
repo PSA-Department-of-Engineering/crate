@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 294 96" width="294" height="96" role="img" aria-label="Crate">
+  <rect x="0" y="0" width="96" height="96" rx="21" fill="hsl(160 84% 39%)"/>
+  <text x="48" y="63" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-size="50" font-weight="700" fill="hsl(0 0% 100%)">C</text>
+  <text x="120" y="63" font-family="Nunito, system-ui, sans-serif" font-size="50" font-weight="700" letter-spacing="0.5" fill="hsl(150 10% 15%)">Crate</text>
+</svg>
