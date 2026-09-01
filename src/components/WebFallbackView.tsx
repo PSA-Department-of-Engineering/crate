@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { version as appVersion } from '../../package.json';
 import {
   Download,
   ShieldCheck,
@@ -76,14 +77,14 @@ export const WebFallbackView: React.FC<WebFallbackViewProps> = ({ onEnterDemo })
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs uppercase font-bold text-primary tracking-wider">Recommended</span>
-                <span className="text-xs font-mono text-muted-foreground">v1.0.0</span>
+                <span className="text-xs font-mono text-muted-foreground">v{appVersion}</span>
               </div>
               <h3 className="text-xl font-bold text-foreground">Portable Windows Release</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Standalone 64-bit binary. Runs instantly without installation, administrative elevation, background services, or auto-updaters.
               </p>
               <div className="pt-2 text-[11px] font-mono text-muted-foreground space-y-1">
-                <div>File: <strong className="text-foreground">Crate-Portable-1.0.0.exe</strong></div>
+                <div>File: <strong className="text-foreground">Crate-Portable-{appVersion}.exe</strong></div>
                 <div>Size: ~78.4 MB</div>
               </div>
             </div>
@@ -93,7 +94,7 @@ export const WebFallbackView: React.FC<WebFallbackViewProps> = ({ onEnterDemo })
                 href="#download-portable"
                 onClick={(e) => {
                   e.preventDefault();
-                  alert('Download initiated for Crate-Portable-1.0.0.exe (SHA-256 verified)');
+                  alert(`Download initiated for Crate-Portable-${appVersion}.exe (SHA-256 verified)`);
                 }}
                 className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-lg shadow-sm transition-all text-sm"
               >
@@ -108,14 +109,14 @@ export const WebFallbackView: React.FC<WebFallbackViewProps> = ({ onEnterDemo })
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider">Installer</span>
-                <span className="text-xs font-mono text-muted-foreground">v1.0.0</span>
+                <span className="text-xs font-mono text-muted-foreground">v{appVersion}</span>
               </div>
               <h3 className="text-xl font-bold text-foreground">Windows Setup Installer</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Standard user-level installer with Start Menu shortcut and file association integration. Does not require admin rights.
               </p>
               <div className="pt-2 text-[11px] font-mono text-muted-foreground space-y-1">
-                <div>File: <strong className="text-foreground">Crate-Setup-1.0.0.exe</strong></div>
+                <div>File: <strong className="text-foreground">Crate-Setup-{appVersion}.exe</strong></div>
                 <div>Size: ~82.1 MB</div>
               </div>
             </div>
@@ -125,7 +126,7 @@ export const WebFallbackView: React.FC<WebFallbackViewProps> = ({ onEnterDemo })
                 href="#download-setup"
                 onClick={(e) => {
                   e.preventDefault();
-                  alert('Download initiated for Crate-Setup-1.0.0.exe (SHA-256 verified)');
+                  alert(`Download initiated for Crate-Setup-${appVersion}.exe (SHA-256 verified)`);
                 }}
                 className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-secondary hover:bg-secondary/80 text-foreground font-bold rounded-lg border border-border transition-all text-sm"
               >
@@ -149,7 +150,7 @@ export const WebFallbackView: React.FC<WebFallbackViewProps> = ({ onEnterDemo })
           <div className="space-y-2">
             <div className="p-3 bg-muted/40 rounded-lg border border-border/80 flex items-center justify-between gap-4 font-mono text-xs">
               <div className="truncate">
-                <span className="text-muted-foreground block text-[10px] uppercase font-bold">Crate-Portable-1.0.0.exe</span>
+                <span className="text-muted-foreground block text-[10px] uppercase font-bold">Crate-Portable-{appVersion}.exe</span>
                 <span className="text-foreground truncate">{PORTABLE_SHA256}</span>
               </div>
               <button
@@ -164,7 +165,7 @@ export const WebFallbackView: React.FC<WebFallbackViewProps> = ({ onEnterDemo })
 
           <div className="p-3 bg-secondary/50 rounded-lg text-xs font-mono text-muted-foreground flex items-center gap-2">
             <Terminal className="w-4 h-4 text-primary shrink-0" />
-            <code>Get-FileHash .\Crate-Portable-1.0.0.exe -Algorithm SHA256</code>
+            <code>Get-FileHash .\Crate-Portable-{appVersion}.exe -Algorithm SHA256</code>
           </div>
         </div>
 
