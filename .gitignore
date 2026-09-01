@@ -1,1 +1,6 @@
 .delivery/
+node_modules/
+dist/
+dist-electron/
+*.log
+.DS_Store
