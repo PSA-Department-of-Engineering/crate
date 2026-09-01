@@ -3,7 +3,7 @@ crate:
   images:
     app:
       repository: ghcr.io/psa-department-of-engineering/crate-app
-      tag: 1.1.1
+      tag: 1.2.0
     docs:
       repository: ghcr.io/psa-department-of-engineering/crate-docs
       tag: 1.1.1
