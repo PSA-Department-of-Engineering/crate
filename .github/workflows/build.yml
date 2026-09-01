@@ -1,0 +1,13 @@
+name: build
+
+on:
+    push:
+        branches: [main]
+
+jobs:
+    build:
+        uses: PSA-Department-of-Engineering/ci/.github/workflows/build.yml@main
+        permissions:
+            contents: write
+            packages: write
+        secrets: inherit
