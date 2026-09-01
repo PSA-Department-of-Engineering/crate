@@ -1,0 +1,7 @@
+Group	Assumption ID	Assumption	Short Title	Confidence	Impact	Req IDs
+Platform	ASM-DSK-001	Windows 10/11 desktop environment supports Chromium/Node.js portable Electron package without requiring elevated administrative privileges	Windows Electron Runtime	HIGH	HIGH	REQ-APP-001, REQ-DIST-002
+Filesystem	ASM-FS-001	The host OS grants direct read and write access to the user music directory and attached USB/SD removable storage volumes	Filesystem Access Rights	HIGH	HIGH	REQ-LIB-001, REQ-ORG-001, REQ-SYNC-001
+Metadata	ASM-TAG-001	Audio files in the library are valid MP3 (ID3v2.3/ID3v2.4) and FLAC (Vorbis comments) files parseable and writable by standard audio tag libraries	Tag Format Support	HIGH	HIGH	REQ-TAG-001, REQ-TAG-002
+Car Sync	ASM-CAR-001	Car head unit supports standard FAT32/exFAT USB storage with relative path M3U playlist format and ASCII/UTF-8 path encoding	Car Firmware Compatibility	MEDIUM	HIGH	REQ-ORG-001, REQ-ORG-002, REQ-PLST-001
+Playback	ASM-AUDIO-001	The platform Web Audio/HTML5 Audio API supports device routing via setSinkId and multi-window rendering on Windows	Audio Output Sink Routing	HIGH	MEDIUM	REQ-PLY-001, REQ-PLY-002
+Distribution	ASM-DIST-001	End users can run portable unsigned Windows executables following provided SmartScreen warning instructions and SHA-256 checksum verification	Unsigned Binary Download	HIGH	MEDIUM	REQ-DIST-001, REQ-DIST-002

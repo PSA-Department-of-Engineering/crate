@@ -1,0 +1,9 @@
+Layer	Component	Technology	Description	Phase 1 Scope
+Desktop Runtime	Desktop Shell	Electron / Node.js Main Process	Manages native window lifecycles, IPC channels, multi-window undocking, and OS dialogs	Full
+Bridge	Desktop Bridge	ContextBridge / Preload IPC	Secure typed IPC boundary exposing filesystem, tag editing, sync, and volume management to renderer	Full
+Presentation	UI Application	React / TypeScript / Tailwind CSS	Renderer UI for library browsing, sorting, search, metadata editing, playlist authoring, and undocked player view	Full
+Media	Audio Playback Engine	HTML5 Audio / Web Audio API	Playback controller handling audio streaming, queue state, seek/skip/shuffle/repeat, and output sink selection	Full
+Core Services	Library & Tag Service	MusicMetadata / Node.js Buffer	Local file reader, ID3 and Vorbis tag writer, embedded artwork extractor, and library indexer	Full
+Core Services	Filesystem Organizer	Node.js fs / Path Operations	Deterministic file renamer and folder restructuring engine applying car-compatible naming patterns	Full
+Core Services	Car Sync Manager	Volume Scanner & Delta Engine	Removable drive synchronizer comparing hashes/timestamps, copying files, pruning stale tracks, and writing M3U playlists	Full
+Distribution	Web Host Shell	Vite / Static Web Build	Hosted web fallback presenting desktop application download, SHA-256 checksums, and installation guide	Full

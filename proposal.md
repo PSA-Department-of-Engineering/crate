@@ -1,18 +1,20 @@
 ---
 phase: scope
 skill: deliver-engagement
-status: gate
+status: complete
 gate: proposal
-signed: pending
+signed: 2026-09-01
 reviewed: 2026-09-01
 run: 
 attempt: 1
 mode: interactive
 started: 2026-09-01T14:43:58Z
-finished: 
+finished: 2026-09-01T14:58:07Z
 credential_ref: 
 delivers: P1
 ---
+
+> Gate closed: proposal signed 2026-09-01 by Carter over a passing fresh-eyes review (REF-Delivery.md section 1). Prose below predates the closure; the frontmatter is the gate.
 
 > Fresh-eyes review passed 2026-09-01 (VERDICT: PASS; artifact `.delivery/reviews/proposal-2026-09-01.md`); recorded in `reviewed:`. The proposal gate awaits its signer (REF-Delivery.md section 1). Prose below predates the review.
 # Proposal: Crate — Personal Music Library & Car Sync Manager

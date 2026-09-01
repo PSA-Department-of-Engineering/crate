@@ -1,0 +1,65 @@
+@startuml architecture-overview
+!define RECTANGLE rectangle
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+title Crate - System Overview - Phase 1
+
+/'==============================
+  ACTORS & STORAGE
+=============================='/
+actor "User" as User #LightBlue
+database "Local Music Library" as LocalMusic #FFF3E0
+database "Removable USB / SD Card" as RemovableStorage #FFF3E0
+
+/'==============================
+  PRESENTATION LAYER
+=============================='/
+package "Presentation Layer" as PresentationLayer #E3F2FD {
+    [UI Application] as UIApp
+    [Audio Playback Engine] as AudioEngine
+}
+
+/'==============================
+  DESKTOP RUNTIME & BRIDGE
+=============================='/
+package "Desktop Runtime & Bridge" as DesktopRuntime #E8F5E9 {
+    [Desktop Shell] as Shell
+    [Desktop Bridge] as Bridge
+}
+
+/'==============================
+  CORE SERVICES LAYER
+=============================='/
+package "Core Services Layer" as CoreServices #F3E5F5 {
+    [Library & Tag Service] as TagService
+    [Filesystem Organizer] as FileOrg
+    [Car Sync Manager] as SyncManager
+}
+
+/'==============================
+  DISTRIBUTION / HOSTING
+=============================='/
+package "Distribution Layer" as DistributionLayer #EDE7F6 {
+    [Web Host Shell] as WebShell
+}
+
+/'==============================
+  RELATIONSHIPS
+=============================='/
+User --> UIApp
+User --> WebShell
+UIApp --> AudioEngine
+UIApp --> Bridge
+Bridge --> Shell
+Shell --> TagService
+Shell --> FileOrg
+Shell --> SyncManager
+
+TagService --> LocalMusic : Read & Write Tags (ID3 / Vorbis)
+FileOrg --> LocalMusic : Organize Folder / File Naming
+SyncManager --> LocalMusic : Read Managed Library & M3U
+SyncManager --> RemovableStorage : Delta Sync & Pruning
+
+@enduml
