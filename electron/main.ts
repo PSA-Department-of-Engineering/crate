@@ -4,6 +4,7 @@ import { AudioMetadataService } from './services/audio-metadata';
 import { LibraryScannerService } from './services/library-scanner';
 import { SyncManagerService } from './services/sync-manager';
 import { PlaylistExporterService } from './services/playlist-exporter';
+import { SettingsManagerService } from './services/settings-manager';
 import { TagUpdates, Track, Playlist, SyncPlan } from '../src/models/types';
 
 let mainWindow: BrowserWindow | null = null;
@@ -12,6 +13,7 @@ let playerWindow: BrowserWindow | null = null;
 const metadataService = new AudioMetadataService();
 const libraryScanner = new LibraryScannerService(metadataService);
 const syncManager = new SyncManagerService();
+const settingsManager = new SettingsManagerService();
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -131,6 +133,23 @@ ipcMain.handle('library:select-folder', async () => {
 
 ipcMain.handle('library:scan', async (_event, folderPath: string) => {
   return await libraryScanner.scanDirectory(folderPath);
+});
+
+// Settings & Config persistence handlers
+ipcMain.handle('settings:get-library-path', async () => {
+  return await settingsManager.getLibraryPath();
+});
+
+ipcMain.handle('settings:set-library-path', async (_event, folderPath: string) => {
+  await settingsManager.setLibraryPath(folderPath);
+});
+
+ipcMain.handle('settings:get', async () => {
+  return await settingsManager.getSettings();
+});
+
+ipcMain.handle('settings:save', async (_event, updates) => {
+  return await settingsManager.saveSettings(updates);
 });
 
 // Tag editing handlers

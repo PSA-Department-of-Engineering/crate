@@ -20,6 +20,8 @@ describe('Desktop Bridge & Volume Detection', () => {
       'onPlayerCommand',
       'sendPlayerState',
       'onPlayerState',
+      'getStoredLibraryPath',
+      'setStoredLibraryPath',
       'windowControl',
     ];
 
@@ -27,6 +29,8 @@ describe('Desktop Bridge & Volume Detection', () => {
     expect(bridgeKeys).toContain('saveTrackTags');
     expect(bridgeKeys).toContain('getVolumes');
     expect(bridgeKeys).toContain('analyzeSync');
+    expect(bridgeKeys).toContain('getStoredLibraryPath');
+    expect(bridgeKeys).toContain('setStoredLibraryPath');
   });
 
   intent('INT-APP-002', 'Desktop bridge detects attached removable USB/SD storage volumes', async () => {

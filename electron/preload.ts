@@ -87,6 +87,14 @@ const bridge: CrateBridge = {
     };
   },
 
+  getStoredLibraryPath: async (): Promise<string | null> => {
+    return await ipcRenderer.invoke('settings:get-library-path');
+  },
+
+  setStoredLibraryPath: async (folderPath: string): Promise<void> => {
+    await ipcRenderer.invoke('settings:set-library-path', folderPath);
+  },
+
   windowControl: (action: 'minimize' | 'maximize' | 'close') => {
     ipcRenderer.send('window:control', action);
   },

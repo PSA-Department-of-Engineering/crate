@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Track, TagUpdates, Playlist } from '../models/types';
 import { filterTracks, sortTracks } from '../utils/library-utils';
 
@@ -9,12 +9,91 @@ export function useLibrary() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [libraryPath, setLibraryPath] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState<boolean>(true);
+  const [showOnboardingModal, setShowOnboardingModal] = useState<boolean>(false);
   const [corruptFiles, setCorruptFiles] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortField, setSortField] = useState<SortField>('artist');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [selectedTrackIds, setSelectedTrackIds] = useState<string[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+
+  // Scan a specified directory path
+  const scanFolder = useCallback(async (folder: string) => {
+    if (typeof window !== 'undefined' && window.crateBridge) {
+      setIsScanning(true);
+      try {
+        const result = await window.crateBridge.scanLibrary(folder);
+        setTracks(result.tracks);
+        setCorruptFiles(result.corruptFiles);
+        return result;
+      } catch (err) {
+        console.error('Library scan failed:', err);
+        throw err;
+      } finally {
+        setIsScanning(false);
+      }
+    }
+    return null;
+  }, []);
+
+  // Initialize stored library path from AppData on startup
+  useEffect(() => {
+    let isMounted = true;
+
+    const initStoredPath = async () => {
+      setIsLoadingSettings(true);
+      try {
+        let storedPath: string | null = null;
+        if (typeof window !== 'undefined' && window.crateBridge?.getStoredLibraryPath) {
+          storedPath = await window.crateBridge.getStoredLibraryPath();
+        } else if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+          storedPath = localStorage.getItem('crate_library_path');
+        }
+
+        if (!isMounted) return;
+
+        if (storedPath && storedPath.trim() !== '') {
+          setLibraryPath(storedPath);
+          setShowOnboardingModal(false);
+
+          // Auto-scan saved library path
+          if (typeof window !== 'undefined' && window.crateBridge?.scanLibrary) {
+            setIsScanning(true);
+            try {
+              const result = await window.crateBridge.scanLibrary(storedPath);
+              if (isMounted) {
+                setTracks(result.tracks);
+                setCorruptFiles(result.corruptFiles);
+              }
+            } catch (err) {
+              console.error('Auto-scan of stored library path failed:', err);
+            } finally {
+              if (isMounted) setIsScanning(false);
+            }
+          }
+        } else {
+          setLibraryPath(null);
+          setShowOnboardingModal(true);
+        }
+      } catch (err) {
+        console.error('Failed to load stored library path from settings:', err);
+        if (isMounted) {
+          setShowOnboardingModal(true);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingSettings(false);
+        }
+      }
+    };
+
+    initStoredPath();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Filtered and sorted tracks computation
   const filteredAndSortedTracks = useMemo(() => {
@@ -43,12 +122,26 @@ export function useLibrary() {
     return Array.from(map.values());
   }, [tracks]);
 
-  // Open directory dialog & scan library
+  // Open directory dialog, persist selection to AppData, & scan library
   const chooseAndScanFolder = useCallback(async () => {
     if (typeof window !== 'undefined' && window.crateBridge) {
       const folder = await window.crateBridge.selectLibraryFolder();
       if (folder) {
         setLibraryPath(folder);
+        setShowOnboardingModal(false);
+
+        // Persist to AppData via bridge
+        try {
+          if (window.crateBridge.setStoredLibraryPath) {
+            await window.crateBridge.setStoredLibraryPath(folder);
+          }
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('crate_library_path', folder);
+          }
+        } catch (err) {
+          console.error('Failed to persist library path to settings:', err);
+        }
+
         setIsScanning(true);
         try {
           const result = await window.crateBridge.scanLibrary(folder);
@@ -192,6 +285,10 @@ export function useLibrary() {
     filteredAndSortedTracks,
     libraryPath,
     isScanning,
+    isLoadingSettings,
+    showOnboardingModal,
+    setShowOnboardingModal,
+    scanFolder,
     corruptFiles,
     searchQuery,
     setSearchQuery,
