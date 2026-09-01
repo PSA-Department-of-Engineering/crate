@@ -1,5 +1,4 @@
 paused: false
-host: ""
 gateway:
     name: crate
     namespace: network

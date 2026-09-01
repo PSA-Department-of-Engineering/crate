@@ -1,7 +1,8 @@
 name: crate
 display: Crate
 description: "Windows desktop music manager and car sync engine for MP3/FLAC collections"
-icon: music
+icon: mdi-music
 mcp: false
 image_components:
-  - crate-web
+  - app
+  - docs

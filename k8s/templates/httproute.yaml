@@ -1,4 +1,3 @@
-{{- if .Values.host }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -7,10 +6,8 @@ spec:
   parentRefs:
     - name: {{ .Chart.Name }}
       namespace: {{ .Values.gateway.namespace }}
-  hostnames:
-    - {{ .Values.host }}
   rules:
     - backendRefs:
         - name: {{ .Chart.Name }}
           port: 80
-{{- end }}
+
