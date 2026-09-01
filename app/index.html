@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crate</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background: 24 12% 8%;
+            --foreground: 30 20% 92%;
+            --card: 24 11% 11%;
+            --muted-foreground: 28 8% 60%;
+            --primary: 160 84% 39%;
+            --primary-foreground: 0 0% 100%;
+            --border: 24 9% 20%;
+            --radius: 0.75rem;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-family: "Nunito", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+        }
+        main {
+            max-width: 32rem;
+            padding: 2.5rem;
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius);
+            background: hsl(var(--card));
+            text-align: center;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+        p {
+            color: hsl(var(--muted-foreground));
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+        a.button {
+            display: inline-block;
+            margin-top: 1.25rem;
+            padding: 0.75rem 1.75rem;
+            border-radius: var(--radius);
+            background: hsl(var(--primary));
+            color: hsl(var(--primary-foreground));
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: opacity 0.15s ease;
+        }
+        a.button:hover {
+            opacity: 0.9;
+        }
+        a.secondary {
+            color: hsl(var(--primary));
+            text-decoration: none;
+            font-weight: 600;
+        }
+        a.secondary:hover {
+            text-decoration: underline;
+        }
+        p.note {
+            font-size: 0.875rem;
+            margin-top: 1.25rem;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Crate</h1>
+        <p>Windows desktop music manager and car sync engine for MP3/FLAC collections: direct ID3/Vorbis tag editing, car head unit folder structuring, and high-speed delta USB sync.</p>
+        <a class="button" href="https://github.com/PSA-Department-of-Engineering/crate/releases/latest">Download for Windows</a>
+        <p class="note">Portable build: zero-install, no admin rights. Verify the download against the release's <code>SHA256SUMS-windows.txt</code>.</p>
+        <p><a class="secondary" href="/apps/crate/">Read the docs &rarr;</a></p>
+    </main>
+</body>
+</html>
