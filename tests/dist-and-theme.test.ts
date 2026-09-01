@@ -1,4 +1,4 @@
-import { describe, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { intent } from './intent-helper';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -29,5 +29,17 @@ describe('Distribution Contract & Visual Theme Tokens', () => {
     expect(indexCss).toContain('--background: 40 33% 97%');
     expect(indexCss).toContain('--radius: 0.75rem');
     expect(indexCss).toContain("'Nunito'");
+  });
+
+  it('Header and WebFallbackView components render dynamic version from package.json without hardcoded version strings', async () => {
+    const headerSource = await fs.promises.readFile(path.join(process.cwd(), 'src/components/Header.tsx'), 'utf-8');
+    expect(headerSource).toContain("import { version as appVersion } from '../../package.json'");
+    expect(headerSource).toContain('v{appVersion}');
+    expect(headerSource).not.toMatch(/v1\.0\.0/);
+
+    const fallbackSource = await fs.promises.readFile(path.join(process.cwd(), 'src/components/WebFallbackView.tsx'), 'utf-8');
+    expect(fallbackSource).toContain("import { version as appVersion } from '../../package.json'");
+    expect(fallbackSource).toContain('v{appVersion}');
+    expect(fallbackSource).not.toMatch(/v1\.0\.0/);
   });
 });

@@ -1,4 +1,5 @@
 import React from 'react';
+import { version as appVersion } from '../../package.json';
 import {
   Music,
   FolderOpen,
@@ -49,7 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
             C
           </div>
           <span className="font-bold text-sm text-foreground tracking-tight">Crate</span>
-          <span className="text-xs text-muted-foreground ml-1">v1.0.0</span>
+          <span className="text-xs text-muted-foreground ml-1">v{appVersion}</span>
           {libraryPath && (
             <span className="text-xs text-muted-foreground/80 truncate max-w-sm ml-2 bg-secondary px-2 py-0.5 rounded">
               {libraryPath}
