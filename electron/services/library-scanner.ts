@@ -59,26 +59,59 @@ export class LibraryScannerService {
 
   /**
    * Helper to recursively find all .mp3 and .flac files in a directory.
+   * Traverses regular directories, symlinks, and NTFS junctions with loop protection.
    */
-  private async collectAudioFiles(dir: string, results: string[]): Promise<void> {
+  private async collectAudioFiles(
+    dir: string,
+    results: string[],
+    visitedDirs: Set<string> = new Set()
+  ): Promise<void> {
     try {
+      let realDirPath: string;
+      try {
+        realDirPath = await fs.promises.realpath(dir);
+      } catch {
+        realDirPath = path.resolve(dir);
+      }
+
+      if (visitedDirs.has(realDirPath)) {
+        return;
+      }
+      visitedDirs.add(realDirPath);
+
       const entries = await fs.promises.readdir(dir, { withFileTypes: true });
 
       for (const entry of entries) {
+        if (entry.name.startsWith('.')) {
+          continue;
+        }
+
         const fullPath = path.join(dir, entry.name);
+
         if (entry.isDirectory()) {
-          // Avoid system/hidden folders
-          if (!entry.name.startsWith('.')) {
-            await this.collectAudioFiles(fullPath, results);
-          }
+          await this.collectAudioFiles(fullPath, results, visitedDirs);
         } else if (entry.isFile()) {
           const ext = path.extname(entry.name).toLowerCase();
           if (ext === '.mp3' || ext === '.flac') {
             results.push(fullPath);
           }
+        } else if (entry.isSymbolicLink()) {
+          try {
+            const stat = await fs.promises.stat(fullPath);
+            if (stat.isDirectory()) {
+              await this.collectAudioFiles(fullPath, results, visitedDirs);
+            } else if (stat.isFile()) {
+              const ext = path.extname(entry.name).toLowerCase();
+              if (ext === '.mp3' || ext === '.flac') {
+                results.push(fullPath);
+              }
+            }
+          } catch {
+            // Broken symlink or inaccessible target - ignore gracefully
+          }
         }
       }
-    } catch (err) {
+    } catch {
       // Permission errors or inaccessible directories are skipped non-fatally
     }
   }

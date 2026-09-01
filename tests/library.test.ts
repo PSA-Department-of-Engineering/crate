@@ -1,4 +1,7 @@
 import { describe, expect } from 'vitest';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import { intent } from './intent-helper';
 import { LibraryScannerService } from '../electron/services/library-scanner';
 import { Track } from '../src/models/types';
@@ -70,6 +73,82 @@ describe('Library Ingestion & Query Engine', () => {
     expect(validTracks[0].format).toBe('mp3');
     expect(validTracks[1].format).toBe('flac');
     expect(validTracks[0].title).toBe('In the Flesh?');
+
+    // Test live scanning with symlinks, NTFS junctions, circular links, and broken links
+    const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-scanner-test-'));
+    try {
+      const realMusicDir = path.join(tempDir, 'RealMusic');
+      const nestedDir = path.join(realMusicDir, 'Rock');
+      await fs.promises.mkdir(nestedDir, { recursive: true });
+
+      // Create sample mp3 and flac files
+      const mp3File = path.join(nestedDir, 'song1.mp3');
+      const flacFile = path.join(nestedDir, 'song2.flac');
+      const nonAudioFile = path.join(nestedDir, 'cover.jpg');
+
+      const mockMp3Data = Buffer.concat([
+        Buffer.from([0xFF, 0xFB, 0x90, 0x64]),
+        Buffer.alloc(1024, 0),
+      ]);
+      const flacHeader = Buffer.from('fLaC', 'ascii');
+      const streamInfo = Buffer.alloc(4 + 34);
+      streamInfo.writeUInt8(0x80 | 0, 0);
+      streamInfo.writeUInt8(34, 3);
+      const mockFlacData = Buffer.concat([flacHeader, streamInfo, Buffer.alloc(512, 0xAA)]);
+
+      await fs.promises.writeFile(mp3File, mockMp3Data);
+      await fs.promises.writeFile(flacFile, mockFlacData);
+      await fs.promises.writeFile(nonAudioFile, Buffer.from('fake image data'));
+
+      // 1. Symlink / junction directory
+      const junctionDir = path.join(tempDir, 'JunctionMusic');
+      try {
+        await fs.promises.symlink(realMusicDir, junctionDir, 'junction');
+      } catch {
+        // Fallback for environments without junction support
+        await fs.promises.symlink(realMusicDir, junctionDir, 'dir');
+      }
+
+      // 2. Symlinked audio file
+      const symlinkMp3 = path.join(tempDir, 'linked-track.mp3');
+      try {
+        await fs.promises.symlink(mp3File, symlinkMp3, 'file');
+      } catch {
+        // If file symlinks require elevated privs on Windows, junction test still validates symlink branch
+      }
+
+      // 3. Circular symlink / junction
+      const circularLink = path.join(nestedDir, 'circular_loop');
+      try {
+        await fs.promises.symlink(tempDir, circularLink, 'junction');
+      } catch {
+        try {
+          await fs.promises.symlink(tempDir, circularLink, 'dir');
+        } catch {
+          // Ignore if unsupported
+        }
+      }
+
+      // 4. Broken symlink
+      const brokenLink = path.join(tempDir, 'broken-link.mp3');
+      try {
+        await fs.promises.symlink(path.join(tempDir, 'non-existent-target.mp3'), brokenLink, 'file');
+      } catch {
+        // Ignore if unsupported
+      }
+
+      const scanner = new LibraryScannerService();
+      const result = await scanner.scanDirectory(tempDir);
+
+      // Verify files were found
+      expect(result.tracks.length).toBeGreaterThanOrEqual(2);
+      const fileNames = result.tracks.map(t => path.basename(t.filePath).toLowerCase());
+      expect(fileNames).toContain('song1.mp3');
+      expect(fileNames).toContain('song2.flac');
+      expect(fileNames).not.toContain('cover.jpg');
+    } finally {
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
+    }
   });
 
   intent('INT-LIB-002', 'Ingestion service gracefully isolates corrupt or unreadable files', async () => {
