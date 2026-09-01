@@ -104,7 +104,7 @@ export function useSync(sourceTracks: Track[], playlists: Playlist[], albums: { 
 
       const plan: SyncPlan = {
         items,
-        staleFiles: ['Old Artist/Old Album/01 Old Song.mp3'],
+        staleFiles: filtered.length > 0 ? ['Old Artist/Old Album/01 Old Song.mp3'] : [],
         totalBytesToTransfer: items.reduce((acc, i) => acc + i.sourceSize, 0),
         totalFilesToTransfer: items.length,
       };

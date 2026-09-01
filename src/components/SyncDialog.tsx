@@ -185,20 +185,26 @@ export const SyncDialog: React.FC<SyncDialogProps> = ({
                 Select Playlists to Sync:
               </label>
               <div className="flex-1 overflow-y-auto max-h-40 border border-border rounded-lg p-2 space-y-1 bg-card">
-                {playlists.map(pl => (
-                  <label key={pl.id} className="flex items-center gap-2 text-xs p-1 rounded hover:bg-secondary cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedPlaylistIds.includes(pl.id)}
-                      onChange={() => onTogglePlaylist(pl.id)}
-                      className="accent-primary"
-                    />
-                    <span className="font-medium text-foreground">{pl.name}</span>
-                    <span className="text-muted-foreground text-[10px] ml-auto">
-                      ({pl.trackIds.length} tracks)
-                    </span>
-                  </label>
-                ))}
+                {playlists.length === 0 ? (
+                  <div className="p-3 text-center text-xs text-muted-foreground">
+                    No playlists available.
+                  </div>
+                ) : (
+                  playlists.map(pl => (
+                    <label key={pl.id} className="flex items-center gap-2 text-xs p-1 rounded hover:bg-secondary cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedPlaylistIds.includes(pl.id)}
+                        onChange={() => onTogglePlaylist(pl.id)}
+                        className="accent-primary"
+                      />
+                      <span className="font-medium text-foreground">{pl.name}</span>
+                      <span className="text-muted-foreground text-[10px] ml-auto">
+                        ({pl.trackIds.length} tracks)
+                      </span>
+                    </label>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -209,20 +215,26 @@ export const SyncDialog: React.FC<SyncDialogProps> = ({
                 Select Albums to Sync:
               </label>
               <div className="flex-1 overflow-y-auto max-h-40 border border-border rounded-lg p-2 space-y-1 bg-card">
-                {albums.map(alb => (
-                  <label key={alb.name} className="flex items-center gap-2 text-xs p-1 rounded hover:bg-secondary cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedAlbumNames.includes(alb.name)}
-                      onChange={() => onToggleAlbum(alb.name)}
-                      className="accent-primary"
-                    />
-                    <div className="truncate">
-                      <span className="font-medium text-foreground block truncate">{alb.name}</span>
-                      <span className="text-[10px] text-muted-foreground">{alb.artist}</span>
-                    </div>
-                  </label>
-                ))}
+                {albums.length === 0 ? (
+                  <div className="p-3 text-center text-xs text-muted-foreground">
+                    No albums in library.
+                  </div>
+                ) : (
+                  albums.map(alb => (
+                    <label key={alb.name} className="flex items-center gap-2 text-xs p-1 rounded hover:bg-secondary cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedAlbumNames.includes(alb.name)}
+                        onChange={() => onToggleAlbum(alb.name)}
+                        className="accent-primary"
+                      />
+                      <div className="truncate">
+                        <span className="font-medium text-foreground block truncate">{alb.name}</span>
+                        <span className="text-[10px] text-muted-foreground">{alb.artist}</span>
+                      </div>
+                    </label>
+                  ))
+                )}
               </div>
             </div>
           )}

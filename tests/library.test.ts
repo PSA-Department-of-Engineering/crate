@@ -101,6 +101,10 @@ describe('Library Ingestion & Query Engine', () => {
     // Search by genre
     const searchGenre = LibraryScannerService.filterTracks(SAMPLE_TRACKS, 'Electronic');
     expect(searchGenre.length).toBe(1);
+
+    // Empty library query
+    const searchEmpty = LibraryScannerService.filterTracks([], 'test');
+    expect(searchEmpty).toEqual([]);
   });
 
   intent('INT-LIB-004', 'Library table supports multi-column sorting ascending and descending', async () => {
@@ -116,5 +120,9 @@ describe('Library Ingestion & Query Engine', () => {
     // Sort by year asc
     const sortedYearAsc = LibraryScannerService.sortTracks(SAMPLE_TRACKS, 'year', 'asc');
     expect(sortedYearAsc[sortedYearAsc.length - 1].year).toBe(2001);
+
+    // Empty library sorting
+    const sortedEmpty = LibraryScannerService.sortTracks([], 'artist', 'asc');
+    expect(sortedEmpty).toEqual([]);
   });
 });

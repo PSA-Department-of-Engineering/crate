@@ -2,122 +2,11 @@ import { useState, useMemo, useCallback } from 'react';
 import { Track, TagUpdates, Playlist } from '../models/types';
 import { filterTracks, sortTracks } from '../utils/library-utils';
 
-const DEMO_TRACKS: Track[] = [
-  {
-    id: 'demo-1',
-    filePath: 'C:/Music/Pink Floyd/The Dark Side of the Moon/01 Speak to Me.mp3',
-    title: 'Speak to Me',
-    artist: 'Pink Floyd',
-    album: 'The Dark Side of the Moon',
-    albumArtist: 'Pink Floyd',
-    trackNumber: 1,
-    totalTracks: 10,
-    year: 1973,
-    genre: 'Progressive Rock',
-    duration: 68,
-    bitrate: 320,
-    sampleRate: 44100,
-    format: 'mp3',
-    fileSize: 2720000,
-    mtime: Date.now() - 1000000,
-  },
-  {
-    id: 'demo-2',
-    filePath: 'C:/Music/Pink Floyd/The Dark Side of the Moon/02 Breathe (In the Air).mp3',
-    title: 'Breathe (In the Air)',
-    artist: 'Pink Floyd',
-    album: 'The Dark Side of the Moon',
-    albumArtist: 'Pink Floyd',
-    trackNumber: 2,
-    totalTracks: 10,
-    year: 1973,
-    genre: 'Progressive Rock',
-    duration: 163,
-    bitrate: 320,
-    sampleRate: 44100,
-    format: 'mp3',
-    fileSize: 6520000,
-    mtime: Date.now() - 1000000,
-  },
-  {
-    id: 'demo-3',
-    filePath: 'C:/Music/Pink Floyd/The Dark Side of the Moon/03 Time.flac',
-    title: 'Time',
-    artist: 'Pink Floyd',
-    album: 'The Dark Side of the Moon',
-    albumArtist: 'Pink Floyd',
-    trackNumber: 3,
-    totalTracks: 10,
-    year: 1973,
-    genre: 'Progressive Rock',
-    duration: 413,
-    bitrate: 940,
-    sampleRate: 44100,
-    format: 'flac',
-    fileSize: 32100000,
-    mtime: Date.now() - 1000000,
-  },
-  {
-    id: 'demo-4',
-    filePath: 'C:/Music/Daft Punk/Random Access Memories/01 Give Life Back to Music.flac',
-    title: 'Give Life Back to Music',
-    artist: 'Daft Punk',
-    album: 'Random Access Memories',
-    albumArtist: 'Daft Punk',
-    trackNumber: 1,
-    totalTracks: 13,
-    year: 2013,
-    genre: 'Electronic / Disco',
-    duration: 274,
-    bitrate: 1010,
-    sampleRate: 88200,
-    format: 'flac',
-    fileSize: 34500000,
-    mtime: Date.now() - 2000000,
-  },
-  {
-    id: 'demo-5',
-    filePath: 'C:/Music/Daft Punk/Random Access Memories/08 Get Lucky.mp3',
-    title: 'Get Lucky',
-    artist: 'Daft Punk ft. Pharrell Williams',
-    album: 'Random Access Memories',
-    albumArtist: 'Daft Punk',
-    trackNumber: 8,
-    totalTracks: 13,
-    year: 2013,
-    genre: 'Electronic / Disco',
-    duration: 369,
-    bitrate: 320,
-    sampleRate: 44100,
-    format: 'mp3',
-    fileSize: 14760000,
-    mtime: Date.now() - 2000000,
-  },
-  {
-    id: 'demo-6',
-    filePath: 'C:/Music/Miles Davis/Kind of Blue/01 So What.flac',
-    title: 'So What',
-    artist: 'Miles Davis',
-    album: 'Kind of Blue',
-    albumArtist: 'Miles Davis',
-    trackNumber: 1,
-    totalTracks: 5,
-    year: 1959,
-    genre: 'Modal Jazz',
-    duration: 562,
-    bitrate: 850,
-    sampleRate: 96000,
-    format: 'flac',
-    fileSize: 58000000,
-    mtime: Date.now() - 3000000,
-  }
-];
-
 export type SortField = 'artist' | 'album' | 'title' | 'trackNumber' | 'year' | 'genre' | 'duration';
 export type SortDirection = 'asc' | 'desc';
 
 export function useLibrary() {
-  const [tracks, setTracks] = useState<Track[]>(DEMO_TRACKS);
+  const [tracks, setTracks] = useState<Track[]>([]);
   const [libraryPath, setLibraryPath] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [corruptFiles, setCorruptFiles] = useState<string[]>([]);
@@ -125,22 +14,7 @@ export function useLibrary() {
   const [sortField, setSortField] = useState<SortField>('artist');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [selectedTrackIds, setSelectedTrackIds] = useState<string[]>([]);
-  const [playlists, setPlaylists] = useState<Playlist[]>([
-    {
-      id: 'pl-roadtrip',
-      name: 'Road Trip Favorites',
-      trackIds: ['demo-1', 'demo-2', 'demo-3', 'demo-5'],
-      createdAt: Date.now() - 500000,
-      updatedAt: Date.now() - 500000,
-    },
-    {
-      id: 'pl-nightdrive',
-      name: 'Night Drive',
-      trackIds: ['demo-4', 'demo-6'],
-      createdAt: Date.now() - 300000,
-      updatedAt: Date.now() - 300000,
-    }
-  ]);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
   // Filtered and sorted tracks computation
   const filteredAndSortedTracks = useMemo(() => {
