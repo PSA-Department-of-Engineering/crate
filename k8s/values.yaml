@@ -1,5 +1,5 @@
 paused: false
-host: ""
+host: crate.chaos-architect.dev
 gateway:
     name: crate
     namespace: network
