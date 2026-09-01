@@ -1,17 +1,19 @@
 ---
 phase: intent+plan
 skill: intent-session
-status: gate
+status: complete
 gate: plan
-signed: pending
+signed: 2026-09-01
 reviewed: 2026-09-01
 run: 
 attempt: 1
 mode: interactive
 started: 2026-09-01T18:21:07Z
-finished: 
+finished: 2026-09-01T18:37:10Z
 credential_ref: 
 ---
+
+> Gate closed: plan signed 2026-09-01 by Carter over a passing fresh-eyes review (REF-Delivery.md section 1). Prose below predates the closure; the frontmatter is the gate.
 
 > Fresh-eyes review passed 2026-09-01 (VERDICT: PASS; artifact `.delivery/reviews/handoff-2026-09-01.md`); recorded in `reviewed:`. The plan gate awaits its signer (REF-Delivery.md section 1). Prose below predates the review.
 
