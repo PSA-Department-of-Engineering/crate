@@ -7,6 +7,7 @@ import { FullPlayer } from './components/FullPlayer';
 import { MiniPlayer } from './components/MiniPlayer';
 import { UndockedMiniPlayer } from './components/UndockedMiniPlayer';
 import { WebFallbackView } from './components/WebFallbackView';
+import { OnboardingModal } from './components/OnboardingModal';
 import { useLibrary } from './hooks/useLibrary';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useSync } from './hooks/useSync';
@@ -179,6 +180,13 @@ export const App: React.FC = () => {
           isElectron={isElectron}
         />
       )}
+
+      {/* First-Launch / Missing Library Onboarding Modal */}
+      <OnboardingModal
+        isOpen={library.showOnboardingModal && !library.isLoadingSettings}
+        onSelectFolder={handleOpenFolder}
+        isScanning={library.isScanning}
+      />
     </div>
   );
 };
