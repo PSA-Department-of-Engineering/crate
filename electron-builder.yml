@@ -1,0 +1,24 @@
+appId: dev.chaos-architect.crate
+productName: Crate
+directories:
+    output: release
+files:
+    - dist/**/*
+    - dist-electron/**/*
+    - package.json
+win:
+    target:
+        - target: portable
+          arch:
+              - x64
+        - target: nsis
+          arch:
+              - x64
+nsis:
+    oneClick: false
+    allowToChangeInstallationDirectory: true
+    createDesktopShortcut: true
+    createStartMenuShortcut: true
+    artifactName: Crate-Setup-${version}.${ext}
+portable:
+    artifactName: Crate-Portable-${version}.${ext}

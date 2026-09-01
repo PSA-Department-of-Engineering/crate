@@ -3,6 +3,7 @@ name: build
 on:
     push:
         branches: [main]
+    pull_request:
 
 jobs:
     build:
@@ -11,3 +12,53 @@ jobs:
             contents: write
             packages: write
         secrets: inherit
+
+    package-windows:
+        needs: build
+        if: github.event_name == 'push'
+        runs-on: windows-latest
+        permissions:
+            contents: write
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - id: tag
+              shell: bash
+              run: echo "tag=$(git tag --points-at HEAD)" >> "$GITHUB_OUTPUT"
+
+            - if: steps.tag.outputs.tag == ''
+              shell: bash
+              run: echo "No tag on HEAD; nothing to package."
+
+            - if: steps.tag.outputs.tag != ''
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+
+            - if: steps.tag.outputs.tag != ''
+              run: npm ci
+
+            - if: steps.tag.outputs.tag != ''
+              shell: bash
+              run: npm version --no-git-tag-version --allow-same-version "${TAG#v}"
+              env:
+                  TAG: ${{ steps.tag.outputs.tag }}
+
+            - if: steps.tag.outputs.tag != ''
+              run: npm run build && npm run build:electron
+
+            - if: steps.tag.outputs.tag != ''
+              run: npx electron-builder --win --publish never
+
+            - if: steps.tag.outputs.tag != ''
+              shell: bash
+              working-directory: release
+              run: sha256sum *.exe > SHA256SUMS-windows.txt
+
+            - if: steps.tag.outputs.tag != ''
+              shell: bash
+              run: gh release upload "${{ steps.tag.outputs.tag }}" release/*.exe release/SHA256SUMS-windows.txt --clobber
+              env:
+                  GH_TOKEN: ${{ github.token }}
