@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript Check & Build
+        run: npm run build
+
+      - name: Run Tests
+        run: npm run test
+
+      - name: Setup Python for Intent Audit
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install csd-intent
+        run: pip install csd-intent
+
+      - name: Run Intent Coverage Audit
+        run: csd-intent .
+
+  build-container:
+    needs: test-and-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker Image
+        run: docker build -t crate-web:latest .

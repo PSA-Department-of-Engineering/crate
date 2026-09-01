@@ -1,6 +1,6 @@
 INT-APP-001:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The desktop shell provides a secure ContextBridge IPC interface isolating Node.js filesystem operations from the renderer."
   derived_from:
     - REQ-APP-001
@@ -13,7 +13,7 @@ INT-APP-001:
 
 INT-APP-002:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The desktop bridge detects attached removable USB and SD storage volumes and retrieves available drive space and filesystem paths."
   derived_from:
     - REQ-APP-001
@@ -26,7 +26,7 @@ INT-APP-002:
 
 INT-LIB-001:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The library ingestion service scans source directories and imports valid MP3 and FLAC files into the managed library structure."
   derived_from:
     - REQ-LIB-001
@@ -39,7 +39,7 @@ INT-LIB-001:
 
 INT-LIB-002:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The library ingestion service gracefully isolates corrupted or unreadable audio files without crashing the import process."
   derived_from:
     - REQ-LIB-001
@@ -52,7 +52,7 @@ INT-LIB-002:
 
 INT-LIB-003:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The library query engine filters and searches tracks across artist, album, album artist, year, genre, track number, and duration fields."
   derived_from:
     - REQ-LIB-002
@@ -65,7 +65,7 @@ INT-LIB-003:
 
 INT-LIB-004:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The library table supports sorting tracks ascending and descending by artist, album, title, track number, year, genre, and duration."
   derived_from:
     - REQ-LIB-002
@@ -78,7 +78,7 @@ INT-LIB-004:
 
 INT-TAG-001:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The metadata tag service parses and writes ID3v2.3/ID3v2.4 tags on MP3 audio files with tag preservation."
   derived_from:
     - REQ-TAG-001
@@ -91,7 +91,7 @@ INT-TAG-001:
 
 INT-TAG-002:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The metadata tag service parses and writes Vorbis comments on FLAC audio files preserving audio stream integrity."
   derived_from:
     - REQ-TAG-001
@@ -104,7 +104,7 @@ INT-TAG-002:
 
 INT-TAG-003:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The tag editor allows editing individual track metadata fields and updates the corresponding file tags upon save."
   derived_from:
     - REQ-TAG-002
@@ -117,7 +117,7 @@ INT-TAG-003:
 
 INT-TAG-004:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The tag editor supports multi-track selection and applies common tag updates across all selected files in one operation."
   derived_from:
     - REQ-TAG-002
@@ -130,7 +130,7 @@ INT-TAG-004:
 
 INT-TAG-005:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The metadata service extracts embedded album art from MP3 APIC frames and FLAC PICTURE blocks and writes replacement image data."
   derived_from:
     - REQ-TAG-002
@@ -143,7 +143,7 @@ INT-TAG-005:
 
 INT-TAG-006:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The application executes all library and tag operations locally without making outbound network requests or transmitting telemetry."
   derived_from:
     - REQ-TAG-003
@@ -156,7 +156,7 @@ INT-TAG-006:
 
 INT-ORG-001:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The filesystem organizer structures library audio files into '<Artist>/<Album>/<Track#> <Title>.<ext>' folder and filename patterns."
   derived_from:
     - REQ-ORG-001
@@ -169,7 +169,7 @@ INT-ORG-001:
 
 INT-ORG-002:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The filesystem organizer formats multi-disc albums with subdirectories matching '<Artist>/<Album>/Disc <N> ...' matching reference car structure."
   derived_from:
     - REQ-ORG-001
@@ -183,7 +183,7 @@ INT-ORG-002:
 
 INT-ORG-003:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The filesystem organizer sanitizes path components by replacing illegal FAT32/exFAT characters with safe equivalents."
   derived_from:
     - REQ-ORG-001
@@ -196,7 +196,7 @@ INT-ORG-003:
 
 INT-PLY-001:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The audio playback engine manages playback state, queue ordering, seek position, shuffle randomization, and repeat modes."
   derived_from:
     - REQ-PLY-001
@@ -209,7 +209,7 @@ INT-PLY-001:
 
 INT-PLY-002:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The audio playback engine enumerates available audio output devices and routes playback stream to the selected sink ID."
   derived_from:
     - REQ-PLY-001
@@ -222,7 +222,7 @@ INT-PLY-002:
 
 INT-PLY-003:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The persistent mini-player displays active track info and controls in the library view and expands into a dedicated media player view."
   derived_from:
     - REQ-PLY-002
@@ -235,7 +235,7 @@ INT-PLY-003:
 
 INT-PLY-004:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The undocked secondary player window syncs playback controls, track progress, and volume bidirectionally with the main window over IPC."
   derived_from:
     - REQ-PLY-002
@@ -248,7 +248,7 @@ INT-PLY-004:
 
 INT-PLST-001:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The playlist manager exports playlists to .m3u files containing relative paths from the library/target root to each audio file."
   derived_from:
     - REQ-PLST-001
@@ -261,7 +261,7 @@ INT-PLST-001:
 
 INT-PLST-002:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The playlist exporter formats M3U files using CRLF line endings and UTF-8 or ANSI encoding matching car firmware specifications."
   derived_from:
     - REQ-PLST-001
@@ -274,7 +274,7 @@ INT-PLST-002:
 
 INT-SYNC-001:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The car sync engine allows selecting sync targets scoped to the entire library, specific playlists, or specific albums."
   derived_from:
     - REQ-SYNC-001
@@ -287,7 +287,7 @@ INT-SYNC-001:
 
 INT-SYNC-002:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The car sync engine performs incremental delta synchronization by comparing source and destination files and copying only modified or missing items."
   derived_from:
     - REQ-SYNC-002
@@ -300,7 +300,7 @@ INT-SYNC-002:
 
 INT-SYNC-003:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The car sync engine scans destination storage, identifies stale files not present in the active sync selection, and reports them for pruning."
   derived_from:
     - REQ-SYNC-002
@@ -313,7 +313,7 @@ INT-SYNC-003:
 
 INT-DIST-001:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The hosted web build on the Foundry hostname displays an honest desktop prerequisite state with installation and download guidance."
   derived_from:
     - REQ-DIST-001
@@ -326,7 +326,7 @@ INT-DIST-001:
 
 INT-DIST-002:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The release packaging pipeline produces portable Windows binaries accompanied by SHA-256 checksums and SmartScreen installation documentation without auto-updaters."
   derived_from:
     - REQ-DIST-002
@@ -339,7 +339,7 @@ INT-DIST-002:
 
 INT-UI-001:
   version: 1.0.0
-  status: draft
+  status: active
   statement: "The user interface adheres to the locked visual identity tokens including pale/nude palette, emerald primary accent, 0.75rem border radius, and Nunito typography."
   derived_from:
     - REQ-UI-001
