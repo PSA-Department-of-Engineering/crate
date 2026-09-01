@@ -1,0 +1,8 @@
+services:
+    app:
+        build:
+            context: ..
+            dockerfile: devops/Dockerfile
+        image: crate-app:latest
+        ports:
+            - "8080:80"
