@@ -1,0 +1,9 @@
+crate:
+  host: crate.chaos-architect.dev
+  images:
+    app:
+      repository: ghcr.io/psa-department-of-engineering/crate-app
+      tag: latest
+    docs:
+      repository: ghcr.io/psa-department-of-engineering/crate-docs
+      tag: latest

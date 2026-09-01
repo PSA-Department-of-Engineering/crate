@@ -1,0 +1,9 @@
+apiVersion: v2
+name: crate
+description: prod environment pin for crate (ADR-025 deploy branch).
+type: application
+version: 1.0.0
+dependencies:
+  - name: crate
+    version: 0.1.0
+    repository: oci://ghcr.io/psa-department-of-engineering/charts
