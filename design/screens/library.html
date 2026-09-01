@@ -1,0 +1,190 @@
+<div class="flex h-screen flex-col bg-background select-none">
+  <!-- Desktop Window Titlebar (Electron custom frame) -->
+  <div class="flex h-8 items-center justify-between border-b border-border bg-card px-3 text-xs text-muted-foreground [-webkit-app-region:drag]">
+    <div class="flex items-center gap-2">
+      <div class="flex h-4 w-4 items-center justify-center rounded bg-primary text-primary-foreground text-[10px] font-bold">C</div>
+      <span class="font-semibold text-foreground">Crate</span>
+      <span class="text-[11px] text-muted-foreground">— Personal Music Library</span>
+    </div>
+    <!-- Window controls [-webkit-app-region:no-drag] -->
+    <div class="flex items-center gap-1 [-webkit-app-region:no-drag]">
+      <button class="flex h-6 w-6 items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground">
+        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 12H4"/></svg>
+      </button>
+      <button class="flex h-6 w-6 items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground">
+        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+      </button>
+      <button class="flex h-6 w-6 items-center justify-center rounded hover:bg-destructive hover:text-destructive-foreground text-muted-foreground">
+        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="flex w-56 flex-col border-r border-border bg-card">
+      <nav class="flex-1 space-y-0.5 px-2 py-3 text-sm">
+        <a class="flex items-center gap-2.5 rounded-md bg-accent px-3 py-2 font-medium text-accent-foreground">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 19V6l12-3v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="15" r="3"/></svg>
+          Library
+        </a>
+        <a class="flex items-center gap-2.5 rounded-md px-3 py-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13M9 9l12-2"/></svg>
+          Playlists
+        </a>
+        <a class="flex items-center gap-2.5 rounded-md px-3 py-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+          Car Sync
+        </a>
+        <a class="flex items-center gap-2.5 rounded-md px-3 py-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+          Settings
+        </a>
+      </nav>
+      <div class="border-t border-border px-3 py-2 text-xs text-muted-foreground">Library: 2,847 tracks</div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="flex flex-1 flex-col overflow-hidden">
+      <!-- Top bar -->
+      <header class="flex items-center justify-between border-b border-border bg-card px-5 py-3">
+        <div class="flex items-center gap-3">
+          <h1 class="text-lg font-semibold text-foreground">Library</h1>
+          <div class="flex rounded-lg border border-border bg-background text-xs">
+            <button class="rounded-l-lg bg-primary px-3 py-1 text-primary-foreground font-medium">All</button>
+            <button class="px-3 py-1 text-muted-foreground hover:text-foreground">Albums</button>
+            <button class="rounded-r-lg px-3 py-1 text-muted-foreground hover:text-foreground">Artists</button>
+          </div>
+        </div>
+        <div class="relative">
+          <svg class="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input class="rounded-lg border border-input bg-background py-1.5 pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground w-56 focus:outline-none focus:ring-1 focus:ring-ring" placeholder="Search library…" />
+        </div>
+      </header>
+
+      <!-- Track table (custom subtle scrollbar) -->
+      <div class="flex-1 overflow-auto [scrollbar-width:thin] [scrollbar-color:hsl(var(--border))_transparent]">
+        <table class="w-full text-sm">
+          <thead class="sticky top-0 bg-muted text-xs text-muted-foreground border-b border-border">
+            <tr>
+              <th class="px-4 py-2 text-left font-medium w-8">#</th>
+              <th class="px-4 py-2 text-left font-medium">Title</th>
+              <th class="px-4 py-2 text-left font-medium">Artist</th>
+              <th class="px-4 py-2 text-left font-medium">Album</th>
+              <th class="px-4 py-2 text-left font-medium w-16">Year</th>
+              <th class="px-4 py-2 text-left font-medium w-20">Genre</th>
+              <th class="px-4 py-2 text-right font-medium w-16">Duration</th>
+            </tr>
+          </thead>
+          <tbody class="text-foreground">
+            <tr class="border-b border-border/50 bg-accent/40">
+              <td class="px-4 py-2.5 text-muted-foreground">1</td>
+              <td class="px-4 py-2.5 font-medium">Midnight City</td>
+              <td class="px-4 py-2.5 text-muted-foreground">M83</td>
+              <td class="px-4 py-2.5 text-muted-foreground">Hurry Up, We're Dreaming</td>
+              <td class="px-4 py-2.5 text-muted-foreground">2011</td>
+              <td class="px-4 py-2.5"><span class="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground font-medium">Synth</span></td>
+              <td class="px-4 py-2.5 text-right text-muted-foreground">4:03</td>
+            </tr>
+            <tr class="border-b border-border/50 hover:bg-accent/20">
+              <td class="px-4 py-2.5 text-muted-foreground">2</td>
+              <td class="px-4 py-2.5 font-medium">Blinding Lights</td>
+              <td class="px-4 py-2.5 text-muted-foreground">The Weeknd</td>
+              <td class="px-4 py-2.5 text-muted-foreground">After Hours</td>
+              <td class="px-4 py-2.5 text-muted-foreground">2020</td>
+              <td class="px-4 py-2.5"><span class="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground font-medium">Pop</span></td>
+              <td class="px-4 py-2.5 text-right text-muted-foreground">3:20</td>
+            </tr>
+            <tr class="border-b border-border/50 hover:bg-accent/20">
+              <td class="px-4 py-2.5 text-muted-foreground">3</td>
+              <td class="px-4 py-2.5 font-medium">Do I Wanna Know?</td>
+              <td class="px-4 py-2.5 text-muted-foreground">Arctic Monkeys</td>
+              <td class="px-4 py-2.5 text-muted-foreground">AM</td>
+              <td class="px-4 py-2.5 text-muted-foreground">2013</td>
+              <td class="px-4 py-2.5"><span class="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground font-medium">Rock</span></td>
+              <td class="px-4 py-2.5 text-right text-muted-foreground">4:32</td>
+            </tr>
+            <tr class="border-b border-border/50 hover:bg-accent/20">
+              <td class="px-4 py-2.5 text-muted-foreground">4</td>
+              <td class="px-4 py-2.5 font-medium">Breathe</td>
+              <td class="px-4 py-2.5 text-muted-foreground">Pink Floyd</td>
+              <td class="px-4 py-2.5 text-muted-foreground">The Dark Side of the Moon</td>
+              <td class="px-4 py-2.5 text-muted-foreground">1973</td>
+              <td class="px-4 py-2.5"><span class="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground font-medium">Prog</span></td>
+              <td class="px-4 py-2.5 text-right text-muted-foreground">2:43</td>
+            </tr>
+            <tr class="border-b border-border/50 hover:bg-accent/20">
+              <td class="px-4 py-2.5 text-muted-foreground">5</td>
+              <td class="px-4 py-2.5 font-medium">Starboy</td>
+              <td class="px-4 py-2.5 text-muted-foreground">The Weeknd ft. Daft Punk</td>
+              <td class="px-4 py-2.5 text-muted-foreground">Starboy</td>
+              <td class="px-4 py-2.5 text-muted-foreground">2016</td>
+              <td class="px-4 py-2.5"><span class="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground font-medium">R&B</span></td>
+              <td class="px-4 py-2.5 text-right text-muted-foreground">3:50</td>
+            </tr>
+            <tr class="border-b border-border/50 hover:bg-accent/20">
+              <td class="px-4 py-2.5 text-muted-foreground">6</td>
+              <td class="px-4 py-2.5 font-medium">A Cruel Angel's Thesis</td>
+              <td class="px-4 py-2.5 text-muted-foreground">Yoko Takahashi</td>
+              <td class="px-4 py-2.5 text-muted-foreground">Neon Genesis Evangelion OST</td>
+              <td class="px-4 py-2.5 text-muted-foreground">1995</td>
+              <td class="px-4 py-2.5"><span class="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground font-medium">Anime</span></td>
+              <td class="px-4 py-2.5 text-right text-muted-foreground">4:05</td>
+            </tr>
+            <tr class="border-b border-border/50 hover:bg-accent/20">
+              <td class="px-4 py-2.5 text-muted-foreground">7</td>
+              <td class="px-4 py-2.5 font-medium">Under Pressure</td>
+              <td class="px-4 py-2.5 text-muted-foreground">Queen & David Bowie</td>
+              <td class="px-4 py-2.5 text-muted-foreground">Hot Space</td>
+              <td class="px-4 py-2.5 text-muted-foreground">1982</td>
+              <td class="px-4 py-2.5"><span class="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground font-medium">Rock</span></td>
+              <td class="px-4 py-2.5 text-right text-muted-foreground">4:08</td>
+            </tr>
+            <tr class="border-b border-border/50 hover:bg-accent/20">
+              <td class="px-4 py-2.5 text-muted-foreground">8</td>
+              <td class="px-4 py-2.5 font-medium">Redbone</td>
+              <td class="px-4 py-2.5 text-muted-foreground">Childish Gambino</td>
+              <td class="px-4 py-2.5 text-muted-foreground">"Awaken, My Love!"</td>
+              <td class="px-4 py-2.5 text-muted-foreground">2016</td>
+              <td class="px-4 py-2.5"><span class="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground font-medium">Funk</span></td>
+              <td class="px-4 py-2.5 text-right text-muted-foreground">5:26</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mini player -->
+      <footer class="flex items-center gap-4 border-t border-border bg-card px-5 py-2.5">
+        <div class="flex items-center gap-3 w-56">
+          <div class="h-10 w-10 rounded-md bg-secondary flex items-center justify-center border border-border">
+            <svg class="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 19V6l12-3v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="15" r="3"/></svg>
+          </div>
+          <div class="min-w-0">
+            <p class="truncate text-sm font-medium text-foreground">Midnight City</p>
+            <p class="truncate text-xs text-muted-foreground">M83</p>
+          </div>
+        </div>
+        <div class="flex flex-1 flex-col items-center gap-1">
+          <div class="flex items-center gap-3">
+            <button class="text-muted-foreground hover:text-foreground"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"/></svg></button>
+            <button class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground"><svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></button>
+            <button class="text-muted-foreground hover:text-foreground"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z"/></svg></button>
+          </div>
+          <div class="flex w-full max-w-md items-center gap-2 text-xs text-muted-foreground">
+            <span>1:42</span>
+            <div class="relative flex-1 h-1 rounded-full bg-border">
+              <div class="absolute left-0 top-0 h-1 w-[42%] rounded-full bg-primary"></div>
+            </div>
+            <span>4:03</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 w-32 justify-end">
+          <button class="text-muted-foreground hover:text-foreground"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z"/></svg></button>
+          <div class="relative h-1 w-20 rounded-full bg-border">
+            <div class="absolute left-0 top-0 h-1 w-[70%] rounded-full bg-primary"></div>
+          </div>
+        </div>
+      </footer>
+    </main>
+  </div>
+</div>
