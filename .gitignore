@@ -1,6 +1,27 @@
-.delivery/
+# Python (the csd-intent CLI's own cache; no Python source ships in this repo)
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Node (root desktop shell + docs/)
 node_modules/
 dist/
 dist-electron/
-*.log
-.DS_Store
+.astro/
+coverage/
+
+# electron-builder output (release/*.exe et al - CI artifacts, never committed)
+release/
+
+# Environment (out-of-band secrets: a committed *.env is never real)
+.env
+k8s/secrets/*.env
+
+# Live MCP endpoint credentials for this pod
+.mcp.json
+
+# The delivery scratch's worktree mount point
+.delivery/
