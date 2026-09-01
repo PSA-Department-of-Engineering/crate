@@ -1,9 +1,9 @@
 ---
 phase: build+ship
 skill: run-delivery-plan
-status: gate
+status: complete
 gate: delivery
-signed: pending
+signed: 2026-09-01
 reviewed: 2026-09-01
 run: 
 attempt: 1
@@ -13,6 +13,8 @@ finished: 2026-09-01T19:50:00Z
 credential_ref: 
 attests: a53c965d6efcb4e0dc0d627470de43692edca543
 ---
+
+> Gate closed: delivery signed 2026-09-01 by CarterTheDoctor over a passing fresh-eyes review (REF-Delivery.md section 1). Prose below predates the closure; the frontmatter is the gate.
 
 > Fresh-eyes review passed 2026-09-01 (VERDICT: PASS; artifact `.delivery/reviews/build-2026-09-01.md`); recorded in `reviewed:`. The delivery gate awaits its signer (REF-Delivery.md section 1).
 
