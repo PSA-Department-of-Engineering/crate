@@ -162,6 +162,16 @@ describe('Audio Metadata & Tagging Service', () => {
     expect(updated.picture).toBeDefined();
     expect(updated.picture?.format).toBe('image/png');
 
+    // Default readTrack should skip artwork extraction for memory efficiency
+    const scannedTrack = await metadataService.readTrack(testMp3);
+    expect(scannedTrack.picture).toBeUndefined();
+
+    // getArtwork should extract embedded artwork on demand
+    const onDemandArt = await metadataService.getArtwork(testMp3);
+    expect(onDemandArt).toBeDefined();
+    expect(onDemandArt?.format).toBe('image/png');
+    expect(onDemandArt?.data).toContain('base64');
+
     await fs.promises.rm(tempDir, { recursive: true, force: true });
   });
 

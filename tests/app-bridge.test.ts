@@ -9,6 +9,7 @@ describe('Desktop Bridge & Volume Detection', () => {
       'isElectron',
       'selectLibraryFolder',
       'scanLibrary',
+      'getTrackArtwork',
       'saveTrackTags',
       'batchSaveTags',
       'getVolumes',
@@ -26,6 +27,7 @@ describe('Desktop Bridge & Volume Detection', () => {
     ];
 
     expect(bridgeKeys).toContain('scanLibrary');
+    expect(bridgeKeys).toContain('getTrackArtwork');
     expect(bridgeKeys).toContain('saveTrackTags');
     expect(bridgeKeys).toContain('getVolumes');
     expect(bridgeKeys).toContain('analyzeSync');

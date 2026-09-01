@@ -135,6 +135,11 @@ ipcMain.handle('library:scan', async (_event, folderPath: string) => {
   return await libraryScanner.scanDirectory(folderPath);
 });
 
+// Artwork lazy-loading handler
+ipcMain.handle('metadata:get-artwork', async (_event, filePath: string) => {
+  return await metadataService.getArtwork(filePath);
+});
+
 // Settings & Config persistence handlers
 ipcMain.handle('settings:get-library-path', async () => {
   return await settingsManager.getLibraryPath();
