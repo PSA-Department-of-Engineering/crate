@@ -173,11 +173,11 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={onOpenFolder}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-sm font-medium rounded-lg border border-border transition-colors whitespace-nowrap"
+            className="p-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg border border-border transition-colors"
             title="Choose Library Folder"
+            aria-label="Choose Library Folder"
           >
             <FolderOpen className="w-4 h-4 text-primary" />
-            <span>Open Folder</span>
           </button>
 
           {isElectron && (
