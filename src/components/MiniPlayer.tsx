@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Play,
   Pause,
@@ -12,6 +12,8 @@ import {
   Maximize2,
   ExternalLink,
   Speaker,
+  Check,
+  ChevronUp,
   Music,
 } from 'lucide-react';
 import { PlayerState, AudioSink } from '../models/types';
@@ -49,6 +51,28 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   onToggleUndock,
   isElectron,
 }) => {
+  const [isSinkMenuOpen, setIsSinkMenuOpen] = useState(false);
+  const sinkDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isSinkMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sinkDropdownRef.current && !sinkDropdownRef.current.contains(e.target as Node)) {
+        setIsSinkMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsSinkMenuOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isSinkMenuOpen]);
   const formatTime = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return '0:00';
     const m = Math.floor(seconds / 60);
@@ -176,21 +200,61 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
 
       {/* Right: Volume & Sink Selector & Undock */}
       <div className="flex items-center justify-end gap-3 w-1/4 min-w-[200px]">
-        {/* Output Sink Dropdown */}
-        <div className="flex items-center gap-1.5 relative group">
-          <Speaker className="w-4 h-4 text-muted-foreground" />
-          <select
-            value={state.selectedSinkId}
-            onChange={e => onSelectSink(e.target.value)}
-            className="text-xs bg-secondary border border-border rounded-md px-2 py-1 text-foreground focus:outline-none max-w-[120px] truncate"
-            title="Audio Output Device"
+        {/* Output Sink Liquid Glass Selector */}
+        <div className="relative" ref={sinkDropdownRef}>
+          <button
+            onClick={() => setIsSinkMenuOpen(!isSinkMenuOpen)}
+            className="flex items-center gap-1.5 px-2 py-1 bg-secondary hover:bg-secondary/80 border border-border rounded-lg text-xs font-medium text-foreground transition-colors group"
+            title="Audio Output Device (Click to change)"
+            aria-label="Audio Output Device"
           >
-            {availableSinks.map(sink => (
-              <option key={sink.deviceId} value={sink.deviceId}>
-                {sink.label}
-              </option>
-            ))}
-          </select>
+            <Speaker className="w-3.5 h-3.5 text-primary group-hover:scale-105 transition-transform shrink-0" />
+            <span className="truncate max-w-[85px] text-[11px]">
+              {availableSinks.find(s => s.deviceId === state.selectedSinkId)?.label || 'Default Output'}
+            </span>
+            <ChevronUp className={`w-3 h-3 text-muted-foreground transition-transform ${isSinkMenuOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Liquid Glass Dropdown Menu */}
+          {isSinkMenuOpen && (
+            <div className="absolute right-0 bottom-full mb-2 min-w-[210px] max-w-[280px] bg-popover/95 backdrop-blur-md text-popover-foreground border border-border rounded-xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 select-none text-xs">
+              <div className="px-3 py-1.5 border-b border-border/60 mb-1 flex flex-col">
+                <span className="font-bold text-foreground">Audio Output Devices</span>
+                <span className="text-[10px] text-muted-foreground">Select speaker or headphone destination</span>
+              </div>
+              <div className="flex flex-col gap-0.5 px-1 max-h-48 overflow-y-auto">
+                {availableSinks.length > 0 ? (
+                  availableSinks.map(sink => {
+                    const isSelected = sink.deviceId === state.selectedSinkId;
+                    return (
+                      <button
+                        key={sink.deviceId}
+                        onClick={() => {
+                          onSelectSink(sink.deviceId);
+                          setIsSinkMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors font-medium ${
+                          isSelected
+                            ? 'bg-primary/15 text-primary'
+                            : 'hover:bg-accent hover:text-accent-foreground text-foreground/90'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Speaker className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                          <span className="truncate">{sink.label}</span>
+                        </div>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0 ml-2" />}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="px-3 py-2 text-muted-foreground italic text-center text-[11px]">
+                    Default system output
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Volume Slider */}

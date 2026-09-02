@@ -3,16 +3,18 @@ import { version as appVersion } from '../../package.json';
 import { BrandLogoMark } from './BrandLogo';
 import {
   Music,
-  FolderOpen,
+  Folder,
   Tag,
   Car,
   Disc,
   Search,
   ExternalLink,
+  RefreshCw,
+  Settings,
   Minus,
   Square,
   X,
-  Radio
+  Radio,
 } from 'lucide-react';
 import { Track } from '../models/types';
 import { hasDragData, getDragData } from '../utils/drag-utils';
@@ -22,7 +24,10 @@ interface HeaderProps {
   setActiveTab: (tab: 'library' | 'tageditor' | 'sync' | 'player' | 'webportal') => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  onOpenFolder: () => void;
+  onOpenFolder?: () => void;
+  onRevealFolder?: () => void;
+  onRescan?: () => void;
+  onOpenSettings?: () => void;
   libraryPath: string | null;
   isElectron: boolean;
   onUndockPlayer: () => void;
@@ -35,6 +40,9 @@ export const Header: React.FC<HeaderProps> = ({
   searchQuery,
   setSearchQuery,
   onOpenFolder,
+  onRevealFolder,
+  onRescan,
+  onOpenSettings,
   libraryPath,
   isElectron,
   onUndockPlayer,
@@ -77,11 +85,6 @@ export const Header: React.FC<HeaderProps> = ({
           <BrandLogoMark className="w-5 h-5 rounded-md" />
           <span className="font-bold text-sm text-foreground tracking-tight">Crate</span>
           <span className="text-xs text-muted-foreground ml-1">v{appVersion}</span>
-          {libraryPath && (
-            <span className="text-xs text-muted-foreground/80 truncate max-w-sm ml-2 bg-secondary px-2 py-0.5 rounded">
-              {libraryPath}
-            </span>
-          )}
         </div>
 
         {/* Windows-style Frame Controls */}
@@ -204,24 +207,50 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          <button
-            onClick={onOpenFolder}
-            className="p-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg border border-border transition-colors"
-            title="Choose Library Folder"
-            aria-label="Choose Library Folder"
-          >
-            <FolderOpen className="w-4 h-4 text-primary" />
-          </button>
+          {/* Action Buttons: Undock, Fix, Folder, Settings */}
+          <div className="flex items-center gap-1.5">
+            {isElectron && (
+              <button
+                onClick={onUndockPlayer}
+                className="p-2 bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground rounded-lg border border-border transition-colors"
+                title="Undock Mini Player to Floating Window"
+                aria-label="Undock Mini Player"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </button>
+            )}
 
-          {isElectron && (
+            {onRescan && (
+              <button
+                onClick={onRescan}
+                className="p-2 bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground rounded-lg border border-border transition-colors"
+                title="Fix & Rescan Library"
+                aria-label="Fix & Rescan Library"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            )}
+
             <button
-              onClick={onUndockPlayer}
-              className="p-2 bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground rounded-lg border border-border transition-colors"
-              title="Undock Mini Player to Floating Window"
+              onClick={onRevealFolder || onOpenFolder}
+              className="p-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg border border-border transition-colors"
+              title="Open Music Folder in File Explorer"
+              aria-label="Open Music Folder in File Explorer"
             >
-              <ExternalLink className="w-4 h-4" />
+              <Folder className="w-4 h-4 text-primary" />
             </button>
-          )}
+
+            {onOpenSettings && (
+              <button
+                onClick={onOpenSettings}
+                className="p-2 bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground rounded-lg border border-border transition-colors"
+                title="Library & App Settings"
+                aria-label="Library & App Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </header>

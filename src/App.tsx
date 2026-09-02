@@ -96,8 +96,28 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleRevealLibraryFolder = () => {
+    if (library.libraryPath) {
+      handleRevealInExplorer(library.libraryPath);
+    } else {
+      library.chooseAndScanFolder();
+    }
+  };
+
+  const handleRescanLibrary = () => {
+    if (library.libraryPath) {
+      library.scanFolder(library.libraryPath);
+    } else {
+      library.chooseAndScanFolder();
+    }
+  };
+
   const handleOpenFolder = () => {
     library.chooseAndScanFolder();
+  };
+
+  const handleOpenSettings = () => {
+    library.setShowOnboardingModal(true);
   };
 
   return (
@@ -109,6 +129,9 @@ export const App: React.FC = () => {
         searchQuery={library.searchQuery}
         setSearchQuery={library.setSearchQuery}
         onOpenFolder={handleOpenFolder}
+        onRevealFolder={handleRevealLibraryFolder}
+        onRescan={handleRescanLibrary}
+        onOpenSettings={handleOpenSettings}
         libraryPath={library.libraryPath}
         isElectron={isElectron}
         onUndockPlayer={player.toggleUndock}

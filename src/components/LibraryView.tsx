@@ -73,49 +73,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden bg-card border border-border rounded-xl shadow-sm m-4">
-      {/* View Switcher Toolbar */}
-      <div className="px-4 py-2 bg-muted/40 border-b border-border flex items-center justify-between text-xs text-muted-foreground select-none">
-        <div className="flex items-center gap-2">
-          <span>
-            Library View: <strong className="text-foreground capitalize">{viewMode}</strong>
-          </span>
-          {selectedTrackIds.length > 0 && (
-            <span className="ml-2 font-medium text-primary bg-primary/10 px-2 py-0.5 rounded">
-              {selectedTrackIds.length} selected
-            </span>
-          )}
-        </div>
-
-        {/* Mode Toggle Buttons */}
-        <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/80">
-          <button
-            onClick={() => handleSetViewMode('mosaic')}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-              viewMode === 'mosaic'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-            title="Hierarchical Mosaic Grid View (Artists -> Albums -> Songs)"
-          >
-            <LayoutGrid className="w-3.5 h-3.5" />
-            <span>Mosaic</span>
-          </button>
-          <button
-            onClick={() => handleSetViewMode('list')}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-              viewMode === 'list'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-            title="Full Flat Tracks Table View"
-          >
-            <List className="w-3.5 h-3.5" />
-            <span>List</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
+      {/* Main Content Area with Unified Single Header Bar */}
       <div className="flex-1 flex overflow-hidden">
         {viewMode === 'mosaic' ? (
           <LibraryMosaic
@@ -136,6 +94,8 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             onOpenFolder={onOpenFolder}
             libraryPath={libraryPath}
             searchQuery={searchQuery}
+            viewMode={viewMode}
+            onSetViewMode={handleSetViewMode}
           />
         ) : (
           <div className="flex-1 flex overflow-hidden">
@@ -160,6 +120,8 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               libraryPath={libraryPath}
               searchQuery={searchQuery}
               isEmbedded
+              viewMode={viewMode}
+              onSetViewMode={handleSetViewMode}
             />
           </div>
         )}
