@@ -104,6 +104,14 @@ const bridge: CrateBridge = {
     await ipcRenderer.invoke('settings:set-library-path', folderPath);
   },
 
+  getSettings: async (): Promise<Record<string, any>> => {
+    return await ipcRenderer.invoke('settings:get');
+  },
+
+  saveSettings: async (updates: Record<string, any>): Promise<Record<string, any>> => {
+    return await ipcRenderer.invoke('settings:save', updates);
+  },
+
   showInFolder: async (filePath: string): Promise<void> => {
     await ipcRenderer.invoke('system:show-in-folder', filePath);
   },
