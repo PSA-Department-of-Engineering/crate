@@ -14,12 +14,14 @@
     "audit:intent": "csd-intent ."
   },
   "dependencies": {
+    "@types/sql.js": "^1.4.11",
     "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",
     "music-metadata": "^7.14.0",
     "node-id3": "^0.2.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "sql.js": "^1.14.2",
     "tailwind-merge": "^2.5.4"
   },
   "devDependencies": {
