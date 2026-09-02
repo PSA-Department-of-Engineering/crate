@@ -40,7 +40,7 @@ Crate features a warm editorial aesthetic tailored for desktop audio management 
 
 ## Brand Logo
 
-The brand mark is located at [`docs/logo.svg`](file:///d:/code-repos/crate/docs/logo.svg). It consists of an emerald rounded badge with a bold white 'C' glyph followed by the bold 'Crate' logotype in deep slate.
+The brand mark is located at [`docs/logo.svg`](file:///d:/code-repos/crate/docs/logo.svg). It consists of an emerald rounded badge (`hsl(160, 84%, 39%)`) featuring a custom vinyl record crate motif (two standing vinyl discs held in a slatted storage crate) followed by the bold 'Crate' logotype in deep slate (`hsl(150, 10%, 15%)`).
 
 ## Interaction & Accessibility Principles
 

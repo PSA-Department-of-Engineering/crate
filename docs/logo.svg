@@ -1,5 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 294 96" width="294" height="96" role="img" aria-label="Crate">
-  <rect x="0" y="0" width="96" height="96" rx="21" fill="hsl(160 84% 39%)"/>
-  <text x="48" y="63" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-size="50" font-weight="700" fill="hsl(0 0% 100%)">C</text>
-  <text x="120" y="63" font-family="Nunito, system-ui, sans-serif" font-size="50" font-weight="700" letter-spacing="0.5" fill="hsl(150 10% 15%)">Crate</text>
+  <!-- Brand Badge Background -->
+  <rect x="0" y="0" width="96" height="96" rx="22" fill="hsl(160 84% 39%)"/>
+  
+  <!-- Left Vinyl Record -->
+  <circle cx="39" cy="40" r="18" fill="none" stroke="#FFFFFF" stroke-width="3" opacity="0.85"/>
+  <circle cx="39" cy="40" r="11" fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0.45"/>
+  <circle cx="39" cy="40" r="5" fill="#FFFFFF"/>
+  
+  <!-- Right Vinyl Record -->
+  <circle cx="57" cy="35" r="21" fill="none" stroke="#FFFFFF" stroke-width="3.5" opacity="0.95"/>
+  <circle cx="57" cy="35" r="13" fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="57" cy="35" r="5.5" fill="#FFFFFF"/>
+
+  <!-- Music Storage Crate -->
+  <path d="M 20 48 L 76 48 L 73 75 C 72.5 77.5 70.5 79 68 79 L 28 79 C 25.5 79 23.5 77.5 23 75 Z" fill="#FFFFFF"/>
+  <rect x="27" y="54" width="42" height="3" rx="1.5" fill="hsl(160 84% 39%)"/>
+  <rect x="29" y="62" width="38" height="3" rx="1.5" fill="hsl(160 84% 39%)"/>
+  <rect x="31" y="70" width="34" height="3" rx="1.5" fill="hsl(160 84% 39%)"/>
+  <rect x="42" y="53" width="12" height="5" rx="2.5" fill="hsl(160 84% 39%)"/>
+
+  <!-- Brand Logotype -->
+  <text x="116" y="63" font-family="Nunito, system-ui, sans-serif" font-size="50" font-weight="800" letter-spacing="-0.5" fill="hsl(150 10% 15%)">Crate</text>
 </svg>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { version as appVersion } from '../../package.json';
+import { BrandLogoMark } from './BrandLogo';
 import {
   Music,
   FolderOpen,
@@ -46,9 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Draggable Title Bar */}
       <div className="h-9 px-3 flex items-center justify-between border-b border-border/50 app-draggable-region bg-muted/40">
         <div className="flex items-center gap-2 app-non-draggable-region">
-          <div className="w-5 h-5 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
-            C
-          </div>
+          <BrandLogoMark className="w-5 h-5 rounded-md" />
           <span className="font-bold text-sm text-foreground tracking-tight">Crate</span>
           <span className="text-xs text-muted-foreground ml-1">v{appVersion}</span>
           {libraryPath && (
