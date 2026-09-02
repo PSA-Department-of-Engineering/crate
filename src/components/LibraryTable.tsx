@@ -16,6 +16,7 @@ import {
   ContextActionHandlers,
   createSongMenuItems,
 } from '../utils/menu-utils';
+import { setDragData } from '../utils/drag-utils';
 
 interface LibraryTableProps {
   tracks: Track[];
@@ -117,6 +118,21 @@ export const LibraryTable: React.FC<LibraryTableProps> = ({
       title: track.title,
       subtitle: `${track.artist} — ${track.album}`,
       items,
+    });
+  };
+
+  const handleDragStart = (e: React.DragEvent, track: Track) => {
+    const isMultiSelected = selectedTrackIds.includes(track.id) && selectedTrackIds.length > 1;
+    const draggedTracks = isMultiSelected
+      ? tracks.filter((t) => selectedTrackIds.includes(t.id))
+      : [track];
+
+    setDragData(e, {
+      type: isMultiSelected ? 'tracks' : 'track',
+      trackIds: draggedTracks.map((t) => t.id),
+      tracks: draggedTracks,
+      title: isMultiSelected ? `${draggedTracks.length} Selected Tracks` : track.title,
+      subtitle: isMultiSelected ? undefined : `${track.artist} — ${track.album}`,
     });
   };
 
@@ -261,10 +277,12 @@ export const LibraryTable: React.FC<LibraryTableProps> = ({
                 return (
                   <tr
                     key={track.id}
+                    draggable={true}
+                    onDragStart={(e) => handleDragStart(e, track)}
                     onClick={(e) => onSelectTrack(track.id, e.ctrlKey || e.metaKey || e.shiftKey)}
                     onDoubleClick={() => onPlayTrack(track)}
                     onContextMenu={(e) => openSongMenu(e, track)}
-                    className={`group cursor-pointer transition-colors ${
+                    className={`group cursor-pointer select-none transition-colors ${
                       isSelected
                         ? 'bg-primary/15 hover:bg-primary/20 text-foreground font-medium'
                         : isCurrentlyPlaying

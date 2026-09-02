@@ -26,6 +26,7 @@ import {
   createAlbumMenuItems,
   createSongMenuItems,
 } from '../utils/menu-utils';
+import { setDragData } from '../utils/drag-utils';
 
 interface LibraryMosaicProps {
   tracks: Track[];
@@ -226,6 +227,41 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
       title: track.title,
       subtitle: `${track.artist} — ${track.album}`,
       items,
+    });
+  };
+
+  const handleDragArtist = (e: React.DragEvent, artist: ArtistGroup) => {
+    setDragData(e, {
+      type: 'artist',
+      trackIds: artist.tracks.map((t) => t.id),
+      tracks: artist.tracks,
+      title: artist.artistName,
+      subtitle: `${artist.albumCount} album${artist.albumCount === 1 ? '' : 's'}, ${artist.trackCount} track${artist.trackCount === 1 ? '' : 's'}`,
+    });
+  };
+
+  const handleDragAlbum = (e: React.DragEvent, album: AlbumGroup) => {
+    setDragData(e, {
+      type: 'album',
+      trackIds: album.tracks.map((t) => t.id),
+      tracks: album.tracks,
+      title: album.albumName,
+      subtitle: album.artistName,
+    });
+  };
+
+  const handleDragTrack = (e: React.DragEvent, track: Track, albumTracks: Track[]) => {
+    const isMultiSelected = selectedTrackIds.includes(track.id) && selectedTrackIds.length > 1;
+    const draggedTracks = isMultiSelected
+      ? albumTracks.filter((t) => selectedTrackIds.includes(t.id))
+      : [track];
+
+    setDragData(e, {
+      type: isMultiSelected ? 'tracks' : 'track',
+      trackIds: draggedTracks.map((t) => t.id),
+      tracks: draggedTracks,
+      title: isMultiSelected ? `${draggedTracks.length} Selected Tracks` : track.title,
+      subtitle: isMultiSelected ? undefined : `${track.artist} — ${track.album}`,
     });
   };
 
@@ -451,9 +487,11 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
               {artistGroups.map((artist) => (
                 <div
                   key={artist.artistName}
+                  draggable={true}
+                  onDragStart={(e) => handleDragArtist(e, artist)}
                   onClick={() => handleArtistClick(artist.artistName)}
                   onContextMenu={(e) => openArtistMenu(e, artist)}
-                  className="group relative flex flex-col bg-card hover:bg-muted/40 border border-border/80 hover:border-primary/50 rounded-xl overflow-hidden cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="group relative flex flex-col bg-card hover:bg-muted/40 border border-border/80 hover:border-primary/50 rounded-xl overflow-hidden cursor-pointer select-none transition-all duration-200 shadow-sm hover:shadow-md"
                 >
                   {/* Artist Artwork / Mosaic Container */}
                   <div className="aspect-square relative overflow-hidden bg-secondary">
@@ -531,9 +569,11 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
               {activeArtistGroup.albums.map((album) => (
                 <div
                   key={album.albumName}
+                  draggable={true}
+                  onDragStart={(e) => handleDragAlbum(e, album)}
                   onClick={() => handleAlbumClick(album.albumName)}
                   onContextMenu={(e) => openAlbumMenu(e, album)}
-                  className="group relative flex flex-col bg-card hover:bg-muted/40 border border-border/80 hover:border-primary/50 rounded-xl overflow-hidden cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="group relative flex flex-col bg-card hover:bg-muted/40 border border-border/80 hover:border-primary/50 rounded-xl overflow-hidden cursor-pointer select-none transition-all duration-200 shadow-sm hover:shadow-md"
                 >
                   {/* Album Cover Art */}
                   <div className="aspect-square relative overflow-hidden bg-secondary">
@@ -675,10 +715,12 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
                     return (
                       <tr
                         key={track.id}
+                        draggable={true}
+                        onDragStart={(e) => handleDragTrack(e, track, activeAlbumGroup.tracks)}
                         onClick={(e) => onSelectTrack(track.id, e.ctrlKey || e.metaKey || e.shiftKey)}
                         onDoubleClick={() => onPlayTrack(track, activeAlbumGroup.tracks)}
                         onContextMenu={(e) => openSongMenu(e, track)}
-                        className={`group cursor-pointer transition-colors ${
+                        className={`group cursor-pointer select-none transition-colors ${
                           isSelected
                             ? 'bg-primary/15 hover:bg-primary/20 text-foreground font-medium'
                             : isCurrentlyPlaying

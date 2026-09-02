@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { version as appVersion } from '../../package.json';
 import { BrandLogoMark } from './BrandLogo';
 import {
@@ -14,6 +14,8 @@ import {
   X,
   Radio
 } from 'lucide-react';
+import { Track } from '../models/types';
+import { hasDragData, getDragData } from '../utils/drag-utils';
 
 interface HeaderProps {
   activeTab: 'library' | 'tageditor' | 'sync' | 'player' | 'webportal';
@@ -24,6 +26,7 @@ interface HeaderProps {
   libraryPath: string | null;
   isElectron: boolean;
   onUndockPlayer: () => void;
+  onDropToTagEditor?: (tracks: Track[]) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -35,10 +38,34 @@ export const Header: React.FC<HeaderProps> = ({
   libraryPath,
   isElectron,
   onUndockPlayer,
+  onDropToTagEditor,
 }) => {
+  const [isTagEditorDragOver, setIsTagEditorDragOver] = useState(false);
+
   const handleWindowControl = (action: 'minimize' | 'maximize' | 'close') => {
     if (typeof window !== 'undefined' && window.crateBridge) {
       window.crateBridge.windowControl(action);
+    }
+  };
+
+  const handleTagEditorDragOver = (e: React.DragEvent) => {
+    if (hasDragData(e)) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      setIsTagEditorDragOver(true);
+    }
+  };
+
+  const handleTagEditorDragLeave = () => {
+    setIsTagEditorDragOver(false);
+  };
+
+  const handleTagEditorDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsTagEditorDragOver(false);
+    const data = getDragData(e);
+    if (data && data.tracks && data.tracks.length > 0 && onDropToTagEditor) {
+      onDropToTagEditor(data.tracks);
     }
   };
 
@@ -103,11 +130,17 @@ export const Header: React.FC<HeaderProps> = ({
 
           <button
             onClick={() => setActiveTab('tageditor')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-              activeTab === 'tageditor'
+            onDragOver={handleTagEditorDragOver}
+            onDragLeave={handleTagEditorDragLeave}
+            onDrop={handleTagEditorDrop}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+              isTagEditorDragOver
+                ? 'bg-primary/30 ring-2 ring-primary text-primary-foreground scale-105 shadow-md animate-pulse'
+                : activeTab === 'tageditor'
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-foreground/80 hover:bg-secondary hover:text-foreground'
             }`}
+            title="Tag Editor (Drag items here to edit tags)"
           >
             <Tag className="w-4 h-4" />
             Tag Editor
