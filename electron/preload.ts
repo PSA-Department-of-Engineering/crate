@@ -100,6 +100,10 @@ const bridge: CrateBridge = {
     await ipcRenderer.invoke('settings:set-library-path', folderPath);
   },
 
+  showInFolder: async (filePath: string): Promise<void> => {
+    await ipcRenderer.invoke('system:show-in-folder', filePath);
+  },
+
   windowControl: (action: 'minimize' | 'maximize' | 'close') => {
     ipcRenderer.send('window:control', action);
   },

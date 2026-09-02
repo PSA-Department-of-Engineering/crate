@@ -67,6 +67,35 @@ export const App: React.FC = () => {
     player.playTrack(track, queue || library.filteredAndSortedTracks);
   };
 
+  const handleEditTags = (tracksToEdit: Track[]) => {
+    library.setSelectedTrackIds(tracksToEdit.map(t => t.id));
+    setActiveTab('tageditor');
+  };
+
+  const handleAddToSync = (scope: 'all' | 'playlists' | 'albums', names?: string[]) => {
+    if (names && names.length > 0) {
+      names.forEach(name => {
+        if (!sync.selectedAlbumNames.includes(name)) {
+          sync.toggleAlbumSelection(name);
+        }
+      });
+    }
+    sync.setScope(scope);
+    setActiveTab('sync');
+  };
+
+  const handleRevealInExplorer = (filePath: string) => {
+    if (typeof window !== 'undefined' && window.crateBridge?.showInFolder) {
+      window.crateBridge.showInFolder(filePath);
+    }
+  };
+
+  const handleCopyPath = (filePath: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(filePath);
+    }
+  };
+
   const handleOpenFolder = () => {
     library.chooseAndScanFolder();
   };
@@ -99,6 +128,12 @@ export const App: React.FC = () => {
             onSelectTrack={library.toggleSelectTrack}
             onSelectAll={library.selectAll}
             onPlayTrack={handlePlayFromLibrary}
+            onPlayNext={player.playNext}
+            onAddToQueue={player.addToQueue}
+            onEditTags={handleEditTags}
+            onAddToSync={handleAddToSync}
+            onRevealInExplorer={handleRevealInExplorer}
+            onCopyPath={handleCopyPath}
             onOpenFolder={handleOpenFolder}
             libraryPath={library.libraryPath}
             searchQuery={library.searchQuery}

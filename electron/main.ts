@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import * as path from 'path';
 import { AudioMetadataService } from './services/audio-metadata';
 import { LibraryScannerService } from './services/library-scanner';
@@ -203,6 +203,13 @@ ipcMain.handle('playlist:export', async (_event, options: {
   relativeRoot?: string;
 }) => {
   return await PlaylistExporterService.exportPlaylist(options);
+});
+
+// File & System handlers
+ipcMain.handle('system:show-in-folder', async (_event, filePath: string) => {
+  if (filePath) {
+    shell.showItemInFolder(filePath);
+  }
 });
 
 // Undocked Mini Player handlers
