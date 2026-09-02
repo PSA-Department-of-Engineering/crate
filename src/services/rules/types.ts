@@ -20,6 +20,7 @@ export interface RuleViolation {
 export interface RuleContext {
   libraryRoot?: string;
   allTracks?: Track[];
+  discoveredCompanionFiles?: string[];
 }
 
 export interface Rule {
