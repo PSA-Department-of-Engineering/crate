@@ -236,7 +236,6 @@ export const App: React.FC = () => {
           onCycleRepeat={player.cycleRepeat}
           onSelectSink={player.selectSink}
           onExpandPlayer={() => setActiveTab('player')}
-          onToggleUndock={player.toggleUndock}
           isElectron={isElectron}
         />
       )}
