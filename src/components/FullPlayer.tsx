@@ -14,7 +14,6 @@ import {
   Clock,
   Speaker,
   Check,
-  ChevronUp,
 } from 'lucide-react';
 import { PlayerState, AudioSink, Track } from '../models/types';
 
@@ -194,15 +193,11 @@ export const FullPlayer: React.FC<FullPlayerProps> = ({
           <div className="relative" ref={sinkDropdownRef}>
             <button
               onClick={() => setIsSinkMenuOpen(!isSinkMenuOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-secondary hover:bg-secondary/80 border border-border rounded-lg text-xs font-medium text-foreground transition-colors group"
+              className="p-1 text-muted-foreground hover:text-foreground transition-colors"
               title="Audio Output Device (Click to change)"
               aria-label="Audio Output Device"
             >
-              <Speaker className="w-3.5 h-3.5 text-primary group-hover:scale-105 transition-transform shrink-0" />
-              <span className="truncate max-w-[130px] text-xs">
-                {availableSinks.find(s => s.deviceId === state.selectedSinkId)?.label || 'Default Output'}
-              </span>
-              <ChevronUp className={`w-3 h-3 text-muted-foreground transition-transform ${isSinkMenuOpen ? 'rotate-180' : ''}`} />
+              <Speaker className="w-4 h-4" />
             </button>
 
             {/* Liquid Glass Dropdown Menu */}
