@@ -176,4 +176,35 @@ describe('Embedded SQLite Library Database & Incremental Sync', () => {
       await fs.promises.rm(tempDir, { recursive: true, force: true });
     }
   });
+
+  it('Persists data to disk across service restart instances', async () => {
+    const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-persistence-test-'));
+    const dbPath = path.join(tempDir, 'test-restart.db');
+
+    try {
+      const dbInstance1 = new LibraryDatabaseService(dbPath);
+      dbInstance1.upsertTrack({
+        id: 'track-restart-1',
+        filePath: 'C:/Music/Restart/01 Test.mp3',
+        title: 'Restart Song',
+        artist: 'Restart Artist',
+        album: 'Restart Album',
+        duration: 200,
+        format: 'mp3',
+        fileSize: 5000,
+        mtime: 1700000000000,
+      });
+      dbInstance1.close();
+
+      // Launch fresh instance pointing to same dbPath
+      const dbInstance2 = new LibraryDatabaseService(dbPath);
+      const reloadedTracks = dbInstance2.getAllTracks();
+      expect(reloadedTracks.length).toBe(1);
+      expect(reloadedTracks[0].title).toBe('Restart Song');
+      expect(reloadedTracks[0].artist).toBe('Restart Artist');
+      dbInstance2.close();
+    } finally {
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
+    }
+  });
 });

@@ -20,7 +20,7 @@ try {
       DatabaseSyncClass = sqlite.DatabaseSync;
     }
   } catch {
-    // node:sqlite not present on legacy runtimes
+    // node:sqlite not present on legacy runtimes (e.g. Electron 33 / Node 20)
   }
 }
 
@@ -34,20 +34,25 @@ export interface DatabaseStats {
 export class LibraryDatabaseService {
   private db: any = null;
   private dbPath: string;
+  private diskCachePath: string;
   private fallbackStore: Map<string, Track> = new Map();
 
   constructor(customDbPath?: string) {
+    let userDataDir: string;
+    try {
+      userDataDir = typeof app !== 'undefined' && app?.getPath
+        ? app.getPath('userData')
+        : path.join(process.cwd(), '.config');
+    } catch {
+      userDataDir = path.join(process.cwd(), '.config');
+    }
+
     if (customDbPath) {
       this.dbPath = customDbPath;
+      this.diskCachePath = customDbPath === ':memory:' ? ':memory:' : `${customDbPath}.cache.json`;
     } else {
-      try {
-        const userDataDir = typeof app !== 'undefined' && app?.getPath
-          ? app.getPath('userData')
-          : path.join(process.cwd(), '.config');
-        this.dbPath = path.join(userDataDir, 'library.db');
-      } catch {
-        this.dbPath = path.join(process.cwd(), '.config', 'library.db');
-      }
+      this.dbPath = path.join(userDataDir, 'library.db');
+      this.diskCachePath = path.join(userDataDir, 'library-cache.json');
     }
 
     if (DatabaseSyncClass) {
@@ -60,9 +65,14 @@ export class LibraryDatabaseService {
         this.db = new DatabaseSyncClass(this.dbPath);
         this.initSchema();
       } catch (err) {
-        console.warn('SQLite initialization fallback to memory store:', err);
+        console.warn('SQLite initialization fallback to disk-backed store:', err);
         this.db = null;
       }
+    }
+
+    // If SQLite native is unavailable (e.g. Electron Node 20), initialize persistent disk store
+    if (!this.db && this.diskCachePath !== ':memory:') {
+      this.loadDiskCache();
     }
   }
 
@@ -72,6 +82,41 @@ export class LibraryDatabaseService {
 
   isSqliteActive(): boolean {
     return this.db !== null;
+  }
+
+  private loadDiskCache(): void {
+    try {
+      if (fs.existsSync(this.diskCachePath)) {
+        const raw = fs.readFileSync(this.diskCachePath, 'utf-8');
+        const list = JSON.parse(raw) as Track[];
+        if (Array.isArray(list)) {
+          this.fallbackStore.clear();
+          for (const track of list) {
+            if (track && track.filePath) {
+              this.fallbackStore.set(track.filePath, track);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load disk cache from', this.diskCachePath, err);
+    }
+  }
+
+  private flushDiskCache(): void {
+    if (this.diskCachePath === ':memory:') return;
+    try {
+      const dir = path.dirname(this.diskCachePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      const data = JSON.stringify(Array.from(this.fallbackStore.values()));
+      const tempPath = `${this.diskCachePath}.tmp.${Date.now()}`;
+      fs.writeFileSync(tempPath, data, 'utf-8');
+      fs.renameSync(tempPath, this.diskCachePath);
+    } catch (err) {
+      console.error('Failed to flush library cache to disk:', err);
+    }
   }
 
   private initSchema(): void {
@@ -318,6 +363,7 @@ export class LibraryDatabaseService {
     }
 
     this.fallbackStore.set(track.filePath, track);
+    this.flushDiskCache();
   }
 
   upsertTracks(tracks: Track[]): void {
@@ -396,6 +442,7 @@ export class LibraryDatabaseService {
     for (const t of tracks) {
       this.fallbackStore.set(t.filePath, t);
     }
+    this.flushDiskCache();
   }
 
   deleteTracksByPaths(filePaths: string[]): void {
@@ -419,6 +466,7 @@ export class LibraryDatabaseService {
     for (const p of filePaths) {
       this.fallbackStore.delete(p);
     }
+    this.flushDiskCache();
   }
 
   clearLibrary(): void {
@@ -427,6 +475,7 @@ export class LibraryDatabaseService {
       return;
     }
     this.fallbackStore.clear();
+    this.flushDiskCache();
   }
 
   getStats(): DatabaseStats {
