@@ -12,6 +12,8 @@ import {
   AlertTriangle,
   Layers,
   MoreVertical,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import { Track, EmbeddedArtwork, ArtistGroup, AlbumGroup } from '../models/types';
 import {
@@ -46,6 +48,8 @@ interface LibraryMosaicProps {
   onOpenFolder?: () => void;
   libraryPath?: string | null;
   searchQuery?: string;
+  viewMode?: 'mosaic' | 'list';
+  onSetViewMode?: (mode: 'mosaic' | 'list') => void;
 }
 
 export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
@@ -65,6 +69,8 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
   onOpenFolder,
   libraryPath,
   searchQuery,
+  viewMode,
+  onSetViewMode,
 }) => {
   const [selectedArtistName, setSelectedArtistName] = useState<string | null>(null);
   const [selectedAlbumName, setSelectedAlbumName] = useState<string | null>(null);
@@ -402,33 +408,70 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
 
           {selectedAlbumName && (
             <>
-              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
               <span className="font-semibold text-primary truncate max-w-xs">
                 {selectedAlbumName}
               </span>
             </>
           )}
+
+          {selectedTrackIds.length > 0 && (
+            <span className="ml-2 font-medium text-primary bg-primary/10 px-2 py-0.5 rounded shrink-0">
+              {selectedTrackIds.length} selected
+            </span>
+          )}
         </div>
 
-        <div className="text-muted-foreground">
-          {!selectedArtistName && (
-            <span>
-              <strong className="text-foreground">{artistGroups.length}</strong> artists &bull;{' '}
-              <strong className="text-foreground">{tracks.length}</strong> tracks
-            </span>
-          )}
-          {activeArtistGroup && !selectedAlbumName && (
-            <span>
-              <strong className="text-foreground">{activeArtistGroup.albums.length}</strong> albums &bull;{' '}
-              <strong className="text-foreground">{activeArtistGroup.trackCount}</strong> tracks &bull;{' '}
-              {formatTotalPlaytime(activeArtistGroup.totalDuration)}
-            </span>
-          )}
-          {activeAlbumGroup && (
-            <span>
-              <strong className="text-foreground">{activeAlbumGroup.trackCount}</strong> tracks &bull;{' '}
-              {formatTotalPlaytime(activeAlbumGroup.totalDuration)}
-            </span>
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="text-muted-foreground">
+            {!selectedArtistName && (
+              <span>
+                <strong className="text-foreground">{artistGroups.length}</strong> artists &bull;{' '}
+                <strong className="text-foreground">{tracks.length}</strong> tracks
+              </span>
+            )}
+            {activeArtistGroup && !selectedAlbumName && (
+              <span>
+                <strong className="text-foreground">{activeArtistGroup.albums.length}</strong> albums &bull;{' '}
+                <strong className="text-foreground">{activeArtistGroup.trackCount}</strong> tracks &bull;{' '}
+                {formatTotalPlaytime(activeArtistGroup.totalDuration)}
+              </span>
+            )}
+            {activeAlbumGroup && (
+              <span>
+                <strong className="text-foreground">{activeAlbumGroup.trackCount}</strong> tracks &bull;{' '}
+                {formatTotalPlaytime(activeAlbumGroup.totalDuration)}
+              </span>
+            )}
+          </div>
+
+          {onSetViewMode && (
+            <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/80">
+              <button
+                onClick={() => onSetViewMode('mosaic')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                  viewMode === 'mosaic'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title="Mosaic View"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Mosaic</span>
+              </button>
+              <button
+                onClick={() => onSetViewMode('list')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                  viewMode === 'list'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title="List View"
+              >
+                <List className="w-3.5 h-3.5" />
+                <span>List</span>
+              </button>
+            </div>
           )}
         </div>
       </div>

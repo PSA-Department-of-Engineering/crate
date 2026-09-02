@@ -8,6 +8,8 @@ import {
   AlertTriangle,
   Clock,
   MoreVertical,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import { Track } from '../models/types';
 import { SortField, SortDirection } from '../hooks/useLibrary';
@@ -39,6 +41,8 @@ interface LibraryTableProps {
   libraryPath?: string | null;
   searchQuery?: string;
   isEmbedded?: boolean;
+  viewMode?: 'mosaic' | 'list';
+  onSetViewMode?: (mode: 'mosaic' | 'list') => void;
 }
 
 export const LibraryTable: React.FC<LibraryTableProps> = ({
@@ -62,6 +66,8 @@ export const LibraryTable: React.FC<LibraryTableProps> = ({
   libraryPath,
   searchQuery,
   isEmbedded,
+  viewMode,
+  onSetViewMode,
 }) => {
   const [contextMenu, setContextMenu] = useState<{
     isOpen: boolean;
@@ -154,27 +160,60 @@ export const LibraryTable: React.FC<LibraryTableProps> = ({
 
   return (
     <div className={`flex flex-col flex-1 overflow-hidden relative ${isEmbedded ? '' : 'bg-card border border-border rounded-xl shadow-sm m-4'}`}>
-      {/* Table Action / Summary Header */}
-      {!isEmbedded && (
-        <div className="px-4 py-2 bg-muted/30 border-b border-border flex items-center justify-between text-xs text-muted-foreground">
-          <div>
-            <span>Showing <strong className="text-foreground">{tracks.length}</strong> tracks</span>
-            {selectedTrackIds.length > 0 && (
-              <span className="ml-2 font-medium text-primary bg-primary/10 px-2 py-0.5 rounded">
-                {selectedTrackIds.length} selected
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onSelectAll}
-              className="hover:text-foreground underline decoration-dotted"
-            >
-              Select All
-            </button>
-          </div>
+      {/* Table Action / Summary Header (Unified Single Bar) */}
+      <div className="px-6 py-2.5 bg-card/50 border-b border-border flex items-center justify-between text-xs select-none">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-primary">Tracks</span>
+          {selectedTrackIds.length > 0 && (
+            <span className="ml-2 font-medium text-primary bg-primary/10 px-2 py-0.5 rounded">
+              {selectedTrackIds.length} selected
+            </span>
+          )}
+          <button
+            onClick={onSelectAll}
+            className="text-muted-foreground hover:text-foreground underline decoration-dotted ml-2 text-xs"
+          >
+            Select All
+          </button>
         </div>
-      )}
+
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="text-muted-foreground">
+            <span>
+              Showing <strong className="text-foreground">{tracks.length}</strong> tracks
+            </span>
+          </div>
+
+          {onSetViewMode && (
+            <div className="flex items-center bg-secondary/80 p-0.5 rounded-lg border border-border/80">
+              <button
+                onClick={() => onSetViewMode('mosaic')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                  viewMode === 'mosaic'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title="Mosaic View"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Mosaic</span>
+              </button>
+              <button
+                onClick={() => onSetViewMode('list')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                  viewMode === 'list'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title="List View"
+              >
+                <List className="w-3.5 h-3.5" />
+                <span>List</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Scrollable Tracks Table */}
       <div className="flex-1 overflow-auto">

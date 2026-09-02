@@ -73,4 +73,48 @@ describe('Distribution Contract & Visual Theme Tokens', () => {
     const builderYaml = await fs.promises.readFile(path.join(process.cwd(), 'electron-builder.yml'), 'utf-8');
     expect(builderYaml).toContain('icon: build/icon.ico');
   });
+
+  it('Header action toolbar includes Undock, Fix, Folder, Settings buttons and a clean title bar', async () => {
+    const headerSource = await fs.promises.readFile(path.join(process.cwd(), 'src/components/Header.tsx'), 'utf-8');
+    
+    // Assert title bar does not display filesystem path badge
+    expect(headerSource).not.toContain('{libraryPath && (');
+    
+    // Assert toolbar action buttons are present with distinct handlers
+    expect(headerSource).toContain('onUndockPlayer');
+    expect(headerSource).toContain('onRescan');
+    expect(headerSource).toContain('onRevealFolder');
+    expect(headerSource).toContain('onOpenSettings');
+    expect(headerSource).toContain('title="Undock Mini Player to Floating Window"');
+    expect(headerSource).toContain('title="Fix & Rescan Library"');
+    expect(headerSource).toContain('title="Open Music Folder in File Explorer"');
+    expect(headerSource).toContain('title="Library & App Settings"');
+  });
+
+  it('MiniPlayer and FullPlayer render interactive speaker button with liquid glass audio sink menu', async () => {
+    const miniPlayerSource = await fs.promises.readFile(path.join(process.cwd(), 'src/components/MiniPlayer.tsx'), 'utf-8');
+    expect(miniPlayerSource).toContain('isSinkMenuOpen');
+    expect(miniPlayerSource).toContain('bg-popover/95 backdrop-blur-md');
+    expect(miniPlayerSource).toContain('Audio Output Devices');
+    expect(miniPlayerSource).not.toContain('<select');
+
+    const fullPlayerSource = await fs.promises.readFile(path.join(process.cwd(), 'src/components/FullPlayer.tsx'), 'utf-8');
+    expect(fullPlayerSource).toContain('isSinkMenuOpen');
+    expect(fullPlayerSource).toContain('bg-popover/95 backdrop-blur-md');
+    expect(fullPlayerSource).not.toContain('<select');
+  });
+
+  it('Library components render a unified single header bar containing breadcrumbs and view mode toggle', async () => {
+    const libraryViewSource = await fs.promises.readFile(path.join(process.cwd(), 'src/components/LibraryView.tsx'), 'utf-8');
+    expect(libraryViewSource).not.toContain('Library View:');
+
+    const mosaicSource = await fs.promises.readFile(path.join(process.cwd(), 'src/components/LibraryMosaic.tsx'), 'utf-8');
+    expect(mosaicSource).toContain('LayoutGrid');
+    expect(mosaicSource).toContain('Artists');
+    expect(mosaicSource).toContain('onSetViewMode');
+
+    const tableSource = await fs.promises.readFile(path.join(process.cwd(), 'src/components/LibraryTable.tsx'), 'utf-8');
+    expect(tableSource).toContain('LayoutGrid');
+    expect(tableSource).toContain('onSetViewMode');
+  });
 });
