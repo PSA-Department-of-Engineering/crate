@@ -18,6 +18,13 @@ interface LibraryViewProps {
   onSelectTrack: (trackId: string, multi: boolean) => void;
   onSelectAll: () => void;
   onPlayTrack: (track: Track, queue?: Track[]) => void;
+  onPlayNext?: (tracks: Track[]) => void;
+  onAddToQueue?: (tracks: Track[]) => void;
+  onEditTags?: (tracks: Track[]) => void;
+  onAddToSync?: (scope: 'all' | 'playlists' | 'albums', names?: string[], tracks?: Track[]) => void;
+  onExportPlaylist?: (name: string, tracks: Track[]) => void;
+  onRevealInExplorer?: (filePath: string) => void;
+  onCopyPath?: (filePath: string) => void;
   onOpenFolder?: () => void;
   libraryPath?: string | null;
   searchQuery?: string;
@@ -34,6 +41,13 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   onSelectTrack,
   onSelectAll,
   onPlayTrack,
+  onPlayNext,
+  onAddToQueue,
+  onEditTags,
+  onAddToSync,
+  onExportPlaylist,
+  onRevealInExplorer,
+  onCopyPath,
   onOpenFolder,
   libraryPath,
   searchQuery,
@@ -112,6 +126,13 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             onSelectTrack={onSelectTrack}
             onSelectAll={onSelectAll}
             onPlayTrack={onPlayTrack}
+            onPlayNext={onPlayNext}
+            onAddToQueue={onAddToQueue}
+            onEditTags={onEditTags}
+            onAddToSync={onAddToSync}
+            onExportPlaylist={onExportPlaylist}
+            onRevealInExplorer={onRevealInExplorer}
+            onCopyPath={onCopyPath}
             onOpenFolder={onOpenFolder}
             libraryPath={libraryPath}
             searchQuery={searchQuery}
@@ -129,6 +150,12 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               onSelectTrack={onSelectTrack}
               onSelectAll={onSelectAll}
               onPlayTrack={(trk) => onPlayTrack(trk, tracks)}
+              onPlayNext={onPlayNext}
+              onAddToQueue={onAddToQueue}
+              onEditTags={onEditTags}
+              onAddToSync={onAddToSync}
+              onRevealInExplorer={onRevealInExplorer}
+              onCopyPath={onCopyPath}
               onOpenFolder={onOpenFolder}
               libraryPath={libraryPath}
               searchQuery={searchQuery}

@@ -296,6 +296,7 @@ export function useLibrary() {
     sortDirection,
     handleSort,
     selectedTrackIds,
+    setSelectedTrackIds,
     toggleSelectTrack,
     selectAll,
     clearSelection,

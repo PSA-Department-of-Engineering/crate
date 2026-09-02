@@ -300,10 +300,72 @@ export function useAudioPlayer() {
     }
   }, [state.isUndocked]);
 
+  const addToQueue = useCallback((tracks: Track | Track[]) => {
+    const toAdd = Array.isArray(tracks) ? tracks : [tracks];
+    if (toAdd.length === 0) return;
+
+    setState(prev => {
+      const newQueue = [...prev.queue, ...toAdd];
+      let newQueueIndex = prev.queueIndex;
+      let newCurrentTrack = prev.currentTrack;
+
+      if (prev.queue.length === 0 && !prev.currentTrack) {
+        newQueueIndex = 0;
+        newCurrentTrack = toAdd[0];
+      }
+
+      const updates: Partial<PlayerState> = {
+        queue: newQueue,
+        queueIndex: newQueueIndex,
+        currentTrack: newCurrentTrack,
+      };
+      broadcastState(updates);
+
+      if (prev.queue.length === 0 && !prev.currentTrack && toAdd[0]) {
+        setTimeout(() => playTrack(toAdd[0], newQueue, 0), 0);
+      }
+
+      return { ...prev, ...updates };
+    });
+  }, [broadcastState, playTrack]);
+
+  const playNext = useCallback((tracks: Track | Track[]) => {
+    const toInsert = Array.isArray(tracks) ? tracks : [tracks];
+    if (toInsert.length === 0) return;
+
+    setState(prev => {
+      if (prev.queue.length === 0 || prev.queueIndex < 0) {
+        const updates: Partial<PlayerState> = {
+          queue: toInsert,
+          queueIndex: 0,
+          currentTrack: toInsert[0],
+        };
+        broadcastState(updates);
+        setTimeout(() => playTrack(toInsert[0], toInsert, 0), 0);
+        return { ...prev, ...updates };
+      }
+
+      const insertAt = prev.queueIndex + 1;
+      const newQueue = [
+        ...prev.queue.slice(0, insertAt),
+        ...toInsert,
+        ...prev.queue.slice(insertAt),
+      ];
+
+      const updates: Partial<PlayerState> = {
+        queue: newQueue,
+      };
+      broadcastState(updates);
+      return { ...prev, ...updates };
+    });
+  }, [broadcastState, playTrack]);
+
   return {
     state,
     availableSinks,
     playTrack,
+    addToQueue,
+    playNext,
     pause,
     togglePlay,
     seek,

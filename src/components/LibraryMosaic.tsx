@@ -11,14 +11,21 @@ import {
   FileAudio,
   AlertTriangle,
   Layers,
+  MoreVertical,
 } from 'lucide-react';
 import { Track, EmbeddedArtwork, ArtistGroup, AlbumGroup } from '../models/types';
 import {
   groupTracksByArtist,
-  groupTracksByAlbum,
   formatDuration,
   formatTotalPlaytime,
 } from '../utils/library-utils';
+import { ContextMenu, MenuItem } from './ContextMenu';
+import {
+  ContextActionHandlers,
+  createArtistMenuItems,
+  createAlbumMenuItems,
+  createSongMenuItems,
+} from '../utils/menu-utils';
 
 interface LibraryMosaicProps {
   tracks: Track[];
@@ -28,6 +35,13 @@ interface LibraryMosaicProps {
   onSelectTrack: (trackId: string, multi: boolean) => void;
   onSelectAll: () => void;
   onPlayTrack: (track: Track, queue?: Track[]) => void;
+  onPlayNext?: (tracks: Track[]) => void;
+  onAddToQueue?: (tracks: Track[]) => void;
+  onEditTags?: (tracks: Track[]) => void;
+  onAddToSync?: (scope: 'all' | 'playlists' | 'albums', names?: string[], tracks?: Track[]) => void;
+  onExportPlaylist?: (name: string, tracks: Track[]) => void;
+  onRevealInExplorer?: (filePath: string) => void;
+  onCopyPath?: (filePath: string) => void;
   onOpenFolder?: () => void;
   libraryPath?: string | null;
   searchQuery?: string;
@@ -40,6 +54,13 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
   isPlaying,
   onSelectTrack,
   onPlayTrack,
+  onPlayNext,
+  onAddToQueue,
+  onEditTags,
+  onAddToSync,
+  onExportPlaylist,
+  onRevealInExplorer,
+  onCopyPath,
   onOpenFolder,
   libraryPath,
   searchQuery,
@@ -47,7 +68,62 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
   const [selectedArtistName, setSelectedArtistName] = useState<string | null>(null);
   const [selectedAlbumName, setSelectedAlbumName] = useState<string | null>(null);
 
-  // Group all provided (and search-filtered) tracks by artist
+  // Active context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    isOpen: boolean;
+    position: { x: number; y: number };
+    title?: string;
+    subtitle?: string;
+    items: MenuItem[];
+  }>({
+    isOpen: false,
+    position: { x: 0, y: 0 },
+    items: [],
+  });
+
+  const closeContextMenu = () => {
+    setContextMenu((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  // Construct unified action handlers object
+  const actionHandlers: ContextActionHandlers = useMemo(
+    () => ({
+      onPlay: (trks: Track[]) => {
+        if (trks.length > 0) onPlayTrack(trks[0], trks);
+      },
+      onShuffle: (trks: Track[]) => {
+        if (trks.length > 0) {
+          const shuffled = [...trks].sort(() => Math.random() - 0.5);
+          onPlayTrack(shuffled[0], shuffled);
+        }
+      },
+      onPlayNext: (trks: Track[]) => {
+        if (onPlayNext) onPlayNext(trks);
+      },
+      onAddToQueue: (trks: Track[]) => {
+        if (onAddToQueue) onAddToQueue(trks);
+      },
+      onEditTags: (trks: Track[]) => {
+        if (onEditTags) onEditTags(trks);
+      },
+      onAddToSync,
+      onExportPlaylist,
+      onRevealInExplorer,
+      onCopyPath,
+    }),
+    [
+      onPlayTrack,
+      onPlayNext,
+      onAddToQueue,
+      onEditTags,
+      onAddToSync,
+      onExportPlaylist,
+      onRevealInExplorer,
+      onCopyPath,
+    ]
+  );
+
+  // Group all provided tracks by artist
   const artistGroups = useMemo(() => {
     return groupTracksByArtist(tracks);
   }, [tracks]);
@@ -72,14 +148,11 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
     );
   }, [activeArtistGroup, selectedAlbumName]);
 
-  // If search query changes or library changes and current selection is no longer valid, reset gracefully
   useEffect(() => {
     if (selectedArtistName && !activeArtistGroup) {
-      // If the artist no longer exists in current filtered tracks, reset to root
       setSelectedArtistName(null);
       setSelectedAlbumName(null);
     } else if (selectedAlbumName && !activeAlbumGroup) {
-      // If the album no longer exists, reset album
       setSelectedAlbumName(null);
     }
   }, [artistGroups, activeArtistGroup, activeAlbumGroup, selectedArtistName, selectedAlbumName]);
@@ -112,6 +185,48 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
       const shuffled = [...album.tracks].sort(() => Math.random() - 0.5);
       onPlayTrack(shuffled[0], shuffled);
     }
+  };
+
+  // Open context menu for Artist
+  const openArtistMenu = (e: React.MouseEvent, artist: ArtistGroup) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const items = createArtistMenuItems(artist, actionHandlers);
+    setContextMenu({
+      isOpen: true,
+      position: { x: e.clientX, y: e.clientY },
+      title: artist.artistName,
+      subtitle: `${artist.albumCount} albums • ${artist.trackCount} tracks`,
+      items,
+    });
+  };
+
+  // Open context menu for Album
+  const openAlbumMenu = (e: React.MouseEvent, album: AlbumGroup) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const items = createAlbumMenuItems(album, actionHandlers);
+    setContextMenu({
+      isOpen: true,
+      position: { x: e.clientX, y: e.clientY },
+      title: album.albumName,
+      subtitle: `${album.artistName}${album.year ? ` • ${album.year}` : ''}`,
+      items,
+    });
+  };
+
+  // Open context menu for Song
+  const openSongMenu = (e: React.MouseEvent, track: Track) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const items = createSongMenuItems(track, actionHandlers);
+    setContextMenu({
+      isOpen: true,
+      position: { x: e.clientX, y: e.clientY },
+      title: track.title,
+      subtitle: `${track.artist} — ${track.album}`,
+      items,
+    });
   };
 
   // Render a 2x2 artwork mosaic or single image for an artist card
@@ -198,7 +313,7 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
   };
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <div className="flex flex-col flex-1 overflow-hidden relative">
       {/* Breadcrumb Navigation Bar */}
       <div className="px-6 py-3 bg-muted/20 border-b border-border flex items-center justify-between text-xs select-none">
         <div className="flex items-center gap-2">
@@ -337,13 +452,14 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
                 <div
                   key={artist.artistName}
                   onClick={() => handleArtistClick(artist.artistName)}
-                  className="group flex flex-col bg-card hover:bg-muted/40 border border-border/80 hover:border-primary/50 rounded-xl overflow-hidden cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
+                  onContextMenu={(e) => openArtistMenu(e, artist)}
+                  className="group relative flex flex-col bg-card hover:bg-muted/40 border border-border/80 hover:border-primary/50 rounded-xl overflow-hidden cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
                 >
                   {/* Artist Artwork / Mosaic Container */}
                   <div className="aspect-square relative overflow-hidden bg-secondary">
                     {renderArtistArtwork(artist)}
 
-                    {/* Hover Play Button Overlay */}
+                    {/* Hover Overlay with Play and 3-dots Menu */}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <button
                         onClick={(e) => handlePlayArtist(e, artist)}
@@ -351,6 +467,15 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
                         title={`Play all songs by ${artist.artistName}`}
                       >
                         <Play className="w-5 h-5 fill-primary-foreground ml-0.5" />
+                      </button>
+
+                      {/* 3-dots action button */}
+                      <button
+                        onClick={(e) => openArtistMenu(e, artist)}
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 hover:bg-background text-foreground shadow-md transition-colors"
+                        title="Artist options"
+                      >
+                        <MoreVertical className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -384,13 +509,22 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
                 </p>
               </div>
 
-              <button
-                onClick={(e) => handlePlayArtist(e, activeArtistGroup)}
-                className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg shadow-sm transition-colors"
-              >
-                <Play className="w-3.5 h-3.5 fill-primary-foreground" />
-                <span>Play All</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(e) => handlePlayArtist(e, activeArtistGroup)}
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg shadow-sm transition-colors"
+                >
+                  <Play className="w-3.5 h-3.5 fill-primary-foreground" />
+                  <span>Play All</span>
+                </button>
+                <button
+                  onClick={(e) => openArtistMenu(e, activeArtistGroup)}
+                  className="p-1.5 bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground rounded-lg border border-border transition-colors"
+                  title="Artist actions"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
@@ -398,13 +532,14 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
                 <div
                   key={album.albumName}
                   onClick={() => handleAlbumClick(album.albumName)}
-                  className="group flex flex-col bg-card hover:bg-muted/40 border border-border/80 hover:border-primary/50 rounded-xl overflow-hidden cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
+                  onContextMenu={(e) => openAlbumMenu(e, album)}
+                  className="group relative flex flex-col bg-card hover:bg-muted/40 border border-border/80 hover:border-primary/50 rounded-xl overflow-hidden cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
                 >
                   {/* Album Cover Art */}
                   <div className="aspect-square relative overflow-hidden bg-secondary">
                     {renderAlbumArtwork(album)}
 
-                    {/* Hover Play Button Overlay */}
+                    {/* Hover Overlay with Play and 3-dots */}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <button
                         onClick={(e) => handlePlayAlbum(e, album)}
@@ -412,6 +547,15 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
                         title={`Play album ${album.albumName}`}
                       >
                         <Play className="w-5 h-5 fill-primary-foreground ml-0.5" />
+                      </button>
+
+                      {/* 3-dots action button */}
+                      <button
+                        onClick={(e) => openAlbumMenu(e, album)}
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 hover:bg-background text-foreground shadow-md transition-colors"
+                        title="Album options"
+                      >
+                        <MoreVertical className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -478,7 +622,7 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
                   </div>
                 </div>
 
-                {/* Playback Controls */}
+                {/* Playback & Context Controls */}
                 <div className="flex items-center gap-3 pt-2">
                   <button
                     onClick={(e) => handlePlayAlbum(e, activeAlbumGroup)}
@@ -494,6 +638,14 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
                   >
                     <Shuffle className="w-4 h-4 text-muted-foreground" />
                     <span>Shuffle</span>
+                  </button>
+
+                  <button
+                    onClick={(e) => openAlbumMenu(e, activeAlbumGroup)}
+                    className="p-2 bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground rounded-lg border border-border transition-colors"
+                    title="Album options"
+                  >
+                    <MoreVertical className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -512,6 +664,7 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
                       <Clock className="w-3.5 h-3.5 inline mr-1" />
                       Time
                     </th>
+                    <th className="w-10 px-2 py-2.5 text-center"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
@@ -524,6 +677,7 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
                         key={track.id}
                         onClick={(e) => onSelectTrack(track.id, e.ctrlKey || e.metaKey || e.shiftKey)}
                         onDoubleClick={() => onPlayTrack(track, activeAlbumGroup.tracks)}
+                        onContextMenu={(e) => openSongMenu(e, track)}
                         className={`group cursor-pointer transition-colors ${
                           isSelected
                             ? 'bg-primary/15 hover:bg-primary/20 text-foreground font-medium'
@@ -588,6 +742,17 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
                         <td className="px-4 py-2.5 text-right text-xs font-mono text-muted-foreground">
                           {formatDuration(track.duration)}
                         </td>
+
+                        {/* 3-dots Context Menu Trigger */}
+                        <td className="px-2 py-2.5 text-center">
+                          <button
+                            onClick={(e) => openSongMenu(e, track)}
+                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground transition-all"
+                            title="Song actions"
+                          >
+                            <MoreVertical className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -597,6 +762,16 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
           </div>
         ) : null}
       </div>
+
+      {/* Responsive Context Dropdown Menu */}
+      <ContextMenu
+        isOpen={contextMenu.isOpen}
+        position={contextMenu.position}
+        onClose={closeContextMenu}
+        title={contextMenu.title}
+        subtitle={contextMenu.subtitle}
+        items={contextMenu.items}
+      />
     </div>
   );
 };
