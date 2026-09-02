@@ -10,7 +10,6 @@ import {
   Volume2,
   VolumeX,
   Maximize2,
-  ExternalLink,
   Speaker,
   Check,
   Music,
@@ -29,8 +28,7 @@ interface MiniPlayerProps {
   onToggleShuffle: () => void;
   onCycleRepeat: () => void;
   onSelectSink: (sinkId: string) => void;
-  onExpandPlayer: () => void;
-  onToggleUndock: () => void;
+  onExpandPlayer?: () => void;
   isElectron: boolean;
 }
 
@@ -47,7 +45,6 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
   onCycleRepeat,
   onSelectSink,
   onExpandPlayer,
-  onToggleUndock,
   isElectron,
 }) => {
   const [isSinkMenuOpen, setIsSinkMenuOpen] = useState(false);
@@ -275,17 +272,6 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
             className="w-16 h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
           />
         </div>
-
-        {/* Expand / Undock */}
-        {isElectron && (
-          <button
-            onClick={onToggleUndock}
-            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md transition-colors"
-            title={state.isUndocked ? 'Dock Player' : 'Undock Player to Separate Window'}
-          >
-            <ExternalLink className="w-4 h-4" />
-          </button>
-        )}
       </div>
     </div>
   );
