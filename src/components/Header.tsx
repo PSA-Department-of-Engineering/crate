@@ -15,6 +15,8 @@ import {
   Square,
   X,
   Radio,
+  ListChecks,
+  Wrench,
 } from 'lucide-react';
 import { Track } from '../models/types';
 import { hasDragData, getDragData } from '../utils/drag-utils';
@@ -28,6 +30,8 @@ interface HeaderProps {
   onRevealFolder?: () => void;
   onRescan?: () => void;
   onOpenSettings?: () => void;
+  onOpenRules?: () => void;
+  onOpenFix?: () => void;
   libraryPath: string | null;
   isElectron: boolean;
   onUndockPlayer: () => void;
@@ -43,6 +47,8 @@ export const Header: React.FC<HeaderProps> = ({
   onRevealFolder,
   onRescan,
   onOpenSettings,
+  onOpenRules,
+  onOpenFix,
   libraryPath,
   isElectron,
   onUndockPlayer,
@@ -217,6 +223,28 @@ export const Header: React.FC<HeaderProps> = ({
                 aria-label="Undock Mini Player"
               >
                 <ExternalLink className="w-4 h-4" />
+              </button>
+            )}
+
+            {onOpenRules && (
+              <button
+                onClick={onOpenRules}
+                className="p-2 bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground rounded-lg border border-border transition-colors"
+                title="System Processing & Renaming Rules"
+                aria-label="Rules"
+              >
+                <ListChecks className="w-4 h-4" />
+              </button>
+            )}
+
+            {onOpenFix && (
+              <button
+                onClick={onOpenFix}
+                className="p-2 bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground rounded-lg border border-border transition-colors"
+                title="Library Fix & Standardization"
+                aria-label="Fix"
+              >
+                <Wrench className="w-4 h-4" />
               </button>
             )}
 
