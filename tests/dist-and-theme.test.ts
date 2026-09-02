@@ -42,4 +42,17 @@ describe('Distribution Contract & Visual Theme Tokens', () => {
     expect(fallbackSource).toContain('v{appVersion}');
     expect(fallbackSource).not.toMatch(/v1\.0\.0/);
   });
+
+  it('Brand logo SVG and UI header feature the custom vinyl record crate mark', async () => {
+    const logoSvg = await fs.promises.readFile(path.join(process.cwd(), 'docs/logo.svg'), 'utf-8');
+    expect(logoSvg).toContain('aria-label="Crate"');
+    expect(logoSvg).toContain('fill="hsl(160 84% 39%)"');
+    expect(logoSvg).not.toMatch(/>C<\/text>/);
+
+    const brandDoc = await fs.promises.readFile(path.join(process.cwd(), 'docs/brand.md'), 'utf-8');
+    expect(brandDoc).toContain('vinyl record crate motif');
+
+    const headerSource = await fs.promises.readFile(path.join(process.cwd(), 'src/components/Header.tsx'), 'utf-8');
+    expect(headerSource).toContain('BrandLogoMark');
+  });
 });

@@ -1,5 +1,6 @@
 import React from 'react';
 import { FolderOpen, Music, HardDrive, ShieldCheck, Loader2 } from 'lucide-react';
+import { BrandLogoMark } from './BrandLogo';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -19,12 +20,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       <div className="w-full max-w-lg bg-card text-card-foreground border border-border shadow-2xl rounded-2xl p-8 flex flex-col items-center text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
         {/* Brand Icon Header */}
         <div className="relative">
-          <div className="w-16 h-16 rounded-2xl bg-primary/15 text-primary flex items-center justify-center shadow-inner">
-            <Music className="w-8 h-8" />
-          </div>
-          <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-black shadow-sm">
-            C
-          </div>
+          <BrandLogoMark className="w-16 h-16 shadow-lg rounded-2xl" />
         </div>
 
         {/* Title & Introduction */}
