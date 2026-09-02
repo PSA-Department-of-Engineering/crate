@@ -11,17 +11,20 @@ import {
   FileMusic,
 } from 'lucide-react';
 import { Track, TagUpdates } from '../models/types';
+import { hasDragData, getDragData } from '../utils/drag-utils';
 
 interface TagEditorProps {
   selectedTracks: Track[];
   onSaveSingle: (filePath: string, tags: TagUpdates) => Promise<any>;
   onSaveBatch: (filePaths: string[], tags: TagUpdates) => Promise<any>;
+  onDropTracks?: (tracks: Track[]) => void;
 }
 
 export const TagEditor: React.FC<TagEditorProps> = ({
   selectedTracks,
   onSaveSingle,
   onSaveBatch,
+  onDropTracks,
 }) => {
   const isBatch = selectedTracks.length > 1;
   const singleTrack = selectedTracks.length === 1 ? selectedTracks[0] : null;
@@ -39,9 +42,30 @@ export const TagEditor: React.FC<TagEditorProps> = ({
   const [artworkData, setArtworkData] = useState<string | null>(null);
   const [artworkFormat, setArtworkFormat] = useState<string>('image/jpeg');
   const [artworkChanged, setArtworkChanged] = useState<boolean>(false);
-
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isDragOver, setIsDragOver] = useState<boolean>(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (hasDragData(e)) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const data = getDragData(e);
+    if (data && data.tracks && data.tracks.length > 0 && onDropTracks) {
+      onDropTracks(data.tracks);
+    }
+  };
 
   // Sync state when selected tracks change
   useEffect(() => {
@@ -198,18 +222,40 @@ export const TagEditor: React.FC<TagEditorProps> = ({
 
   if (selectedTracks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 bg-card border border-border rounded-xl m-4 p-8 text-center text-muted-foreground">
-        <Tag className="w-12 h-12 mb-3 text-primary/40" />
-        <h3 className="text-lg font-bold text-foreground">No Tracks Selected</h3>
-        <p className="max-w-sm text-sm mt-1">
-          Select one or more tracks from the Library table to view and edit ID3 / Vorbis tags directly in the audio files.
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`flex flex-col items-center justify-center flex-1 bg-card border rounded-xl m-4 p-8 text-center transition-all ${
+          isDragOver
+            ? 'border-primary border-2 border-dashed bg-primary/10 shadow-lg'
+            : 'border-border text-muted-foreground'
+        }`}
+      >
+        <div className={`p-4 rounded-2xl mb-3 transition-colors ${isDragOver ? 'bg-primary/20 text-primary animate-bounce' : 'bg-secondary text-primary/60'}`}>
+          <Tag className="w-10 h-10" />
+        </div>
+        <h3 className="text-lg font-bold text-foreground">
+          {isDragOver ? 'Drop items to edit tags' : 'No Tracks Selected'}
+        </h3>
+        <p className="max-w-sm text-sm mt-1 text-muted-foreground">
+          {isDragOver
+            ? 'Release mouse to open this track or collection in the Tag Editor.'
+            : 'Select tracks from the Library or drag and drop songs, albums, or artists here to view and edit tags.'}
         </p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col flex-1 overflow-auto bg-card border border-border rounded-xl shadow-sm m-4 p-6">
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`flex flex-col flex-1 overflow-auto bg-card border rounded-xl shadow-sm m-4 p-6 transition-colors ${
+        isDragOver ? 'border-primary ring-2 ring-primary/40' : 'border-border'
+      }`}
+    >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
         <div className="flex items-center gap-3">

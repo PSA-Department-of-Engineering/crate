@@ -112,6 +112,7 @@ export const App: React.FC = () => {
         libraryPath={library.libraryPath}
         isElectron={isElectron}
         onUndockPlayer={player.toggleUndock}
+        onDropToTagEditor={handleEditTags}
       />
 
       {/* Main Content Area */}
@@ -145,6 +146,7 @@ export const App: React.FC = () => {
             selectedTracks={selectedTracksList}
             onSaveSingle={library.updateTrackTags}
             onSaveBatch={library.batchUpdateTags}
+            onDropTracks={handleEditTags}
           />
         )}
 
