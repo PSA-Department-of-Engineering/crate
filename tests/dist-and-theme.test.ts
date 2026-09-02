@@ -55,4 +55,22 @@ describe('Distribution Contract & Visual Theme Tokens', () => {
     const headerSource = await fs.promises.readFile(path.join(process.cwd(), 'src/components/Header.tsx'), 'utf-8');
     expect(headerSource).toContain('BrandLogoMark');
   });
+
+  it('Desktop application bundles multi-resolution Windows icons and sets taskbar app ID', async () => {
+    // Assert icon asset files exist
+    expect(fs.existsSync(path.join(process.cwd(), 'public/icon.ico'))).toBe(true);
+    expect(fs.existsSync(path.join(process.cwd(), 'public/icon.png'))).toBe(true);
+    expect(fs.existsSync(path.join(process.cwd(), 'build/icon.ico'))).toBe(true);
+    expect(fs.existsSync(path.join(process.cwd(), 'build/icon.png'))).toBe(true);
+
+    // Assert main process configuration
+    const mainSource = await fs.promises.readFile(path.join(process.cwd(), 'electron/main.ts'), 'utf-8');
+    expect(mainSource).toContain('getAppIcon()');
+    expect(mainSource).toContain('setAppUserModelId');
+    expect(mainSource).toContain('icon: getAppIcon()');
+
+    // Assert electron-builder packaging config
+    const builderYaml = await fs.promises.readFile(path.join(process.cwd(), 'electron-builder.yml'), 'utf-8');
+    expect(builderYaml).toContain('icon: build/icon.ico');
+  });
 });
