@@ -347,7 +347,14 @@ export const LibraryTable: React.FC<LibraryTableProps> = ({
                     </td>
 
                     {/* Track Number */}
-                    <td className="px-2 py-2 text-center text-xs font-mono text-muted-foreground">
+                    <td
+                      className={`px-2 py-2 text-center text-xs font-mono ${
+                        track.trackNumber
+                          ? 'text-muted-foreground'
+                          : 'text-destructive font-semibold'
+                      }`}
+                      title={track.trackNumber ? undefined : 'Missing track number in metadata (inferred from list position)'}
+                    >
                       {track.trackNumber || idx + 1}
                     </td>
 

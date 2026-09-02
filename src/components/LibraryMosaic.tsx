@@ -777,7 +777,14 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
                             <span className="text-primary font-bold animate-pulse">▶</span>
                           ) : (
                             <div className="relative flex items-center justify-center">
-                              <span className="group-hover:hidden font-mono text-muted-foreground">
+                              <span
+                                className={`group-hover:hidden font-mono ${
+                                  track.trackNumber
+                                    ? 'text-muted-foreground'
+                                    : 'text-destructive font-semibold'
+                                }`}
+                                title={track.trackNumber ? undefined : 'Missing track number in metadata (inferred from list position)'}
+                              >
                                 {track.trackNumber || idx + 1}
                               </span>
                               <button

@@ -8,6 +8,8 @@ import { MiniPlayer } from './components/MiniPlayer';
 import { UndockedMiniPlayer } from './components/UndockedMiniPlayer';
 import { WebFallbackView } from './components/WebFallbackView';
 import { OnboardingModal } from './components/OnboardingModal';
+import { RulesModal } from './components/RulesModal';
+import { FixModal } from './components/FixModal';
 import { useLibrary } from './hooks/useLibrary';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useSync } from './hooks/useSync';
@@ -20,6 +22,8 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'library' | 'tageditor' | 'sync' | 'player' | 'webportal'>(
     isElectron ? 'library' : 'webportal'
   );
+  const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
+  const [showFixModal, setShowFixModal] = useState<boolean>(false);
 
   const library = useLibrary();
   const player = useAudioPlayer();
@@ -132,6 +136,8 @@ export const App: React.FC = () => {
         onRevealFolder={handleRevealLibraryFolder}
         onRescan={handleRescanLibrary}
         onOpenSettings={handleOpenSettings}
+        onOpenRules={() => setShowRulesModal(true)}
+        onOpenFix={() => setShowFixModal(true)}
         libraryPath={library.libraryPath}
         isElectron={isElectron}
         onUndockPlayer={player.toggleUndock}
@@ -239,6 +245,27 @@ export const App: React.FC = () => {
           isElectron={isElectron}
         />
       )}
+
+      {/* Rules Overview Modal */}
+      <RulesModal
+        isOpen={showRulesModal}
+        onClose={() => setShowRulesModal(false)}
+      />
+
+      {/* Library Fix & Diff Modal */}
+      <FixModal
+        isOpen={showFixModal}
+        onClose={() => setShowFixModal(false)}
+        tracks={library.tracks}
+        onRescanLibrary={async () => {
+          handleRescanLibrary();
+        }}
+        onApplyViolation={async (violation, track) => {
+          if (violation.proposedTagUpdates) {
+            await library.updateTrackTags(track.filePath, violation.proposedTagUpdates);
+          }
+        }}
+      />
 
       {/* First-Launch / Missing Library Onboarding Modal */}
       <OnboardingModal
