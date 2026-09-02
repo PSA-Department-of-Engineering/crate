@@ -26,6 +26,7 @@ interface LibraryTableProps {
   onOpenFolder?: () => void;
   libraryPath?: string | null;
   searchQuery?: string;
+  isEmbedded?: boolean;
 }
 
 export const LibraryTable: React.FC<LibraryTableProps> = ({
@@ -42,6 +43,7 @@ export const LibraryTable: React.FC<LibraryTableProps> = ({
   onOpenFolder,
   libraryPath,
   searchQuery,
+  isEmbedded,
 }) => {
   const formatDuration = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return '0:00';
@@ -60,26 +62,28 @@ export const LibraryTable: React.FC<LibraryTableProps> = ({
   };
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden bg-card border border-border rounded-xl shadow-sm m-4">
+    <div className={`flex flex-col flex-1 overflow-hidden ${isEmbedded ? '' : 'bg-card border border-border rounded-xl shadow-sm m-4'}`}>
       {/* Table Action / Summary Header */}
-      <div className="px-4 py-2 bg-muted/30 border-b border-border flex items-center justify-between text-xs text-muted-foreground">
-        <div>
-          <span>Showing <strong className="text-foreground">{tracks.length}</strong> tracks</span>
-          {selectedTrackIds.length > 0 && (
-            <span className="ml-2 font-medium text-primary bg-primary/10 px-2 py-0.5 rounded">
-              {selectedTrackIds.length} selected
-            </span>
-          )}
+      {!isEmbedded && (
+        <div className="px-4 py-2 bg-muted/30 border-b border-border flex items-center justify-between text-xs text-muted-foreground">
+          <div>
+            <span>Showing <strong className="text-foreground">{tracks.length}</strong> tracks</span>
+            {selectedTrackIds.length > 0 && (
+              <span className="ml-2 font-medium text-primary bg-primary/10 px-2 py-0.5 rounded">
+                {selectedTrackIds.length} selected
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onSelectAll}
+              className="hover:text-foreground underline decoration-dotted"
+            >
+              Select All
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onSelectAll}
-            className="hover:text-foreground underline decoration-dotted"
-          >
-            Select All
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Scrollable Tracks Table */}
       <div className="flex-1 overflow-auto">

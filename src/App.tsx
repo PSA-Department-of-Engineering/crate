@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
-import { LibraryTable } from './components/LibraryTable';
+import { LibraryView } from './components/LibraryView';
 import { TagEditor } from './components/TagEditor';
 import { SyncDialog } from './components/SyncDialog';
 import { FullPlayer } from './components/FullPlayer';
@@ -63,8 +63,8 @@ export const App: React.FC = () => {
 
   const selectedTracksList = library.tracks.filter(t => library.selectedTrackIds.includes(t.id));
 
-  const handlePlayFromLibrary = (track: Track) => {
-    player.playTrack(track, library.filteredAndSortedTracks);
+  const handlePlayFromLibrary = (track: Track, queue?: Track[]) => {
+    player.playTrack(track, queue || library.filteredAndSortedTracks);
   };
 
   const handleOpenFolder = () => {
@@ -88,7 +88,7 @@ export const App: React.FC = () => {
       {/* Main Content Area */}
       <main className="flex-1 flex overflow-hidden">
         {activeTab === 'library' && (
-          <LibraryTable
+          <LibraryView
             tracks={library.filteredAndSortedTracks}
             selectedTrackIds={library.selectedTrackIds}
             currentPlayingTrackId={player.state.currentTrack?.id}
