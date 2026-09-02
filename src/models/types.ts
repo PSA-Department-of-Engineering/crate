@@ -28,6 +28,27 @@ export interface Track {
   isCorrupt?: boolean;
 }
 
+export interface AlbumGroup {
+  albumName: string;
+  artistName: string;
+  year?: number;
+  genre?: string;
+  trackCount: number;
+  totalDuration: number;
+  artwork?: EmbeddedArtwork;
+  tracks: Track[];
+}
+
+export interface ArtistGroup {
+  artistName: string;
+  albumCount: number;
+  trackCount: number;
+  totalDuration: number;
+  artworks: EmbeddedArtwork[];
+  albums: AlbumGroup[];
+  tracks: Track[];
+}
+
 export interface TagUpdates {
   title?: string;
   artist?: string;
