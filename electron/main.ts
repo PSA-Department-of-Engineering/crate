@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import * as path from 'path';
+import * as fs from 'fs';
 import { AudioMetadataService } from './services/audio-metadata';
 import { LibraryScannerService } from './services/library-scanner';
 import { SyncManagerService } from './services/sync-manager';
@@ -15,6 +16,25 @@ const libraryScanner = new LibraryScannerService(metadataService);
 const syncManager = new SyncManagerService();
 const settingsManager = new SettingsManagerService();
 
+export function getAppIcon(): string | undefined {
+  const possiblePaths = [
+    path.join(__dirname, '../public/icon.ico'),
+    path.join(__dirname, '../public/icon.png'),
+    path.join(app.getAppPath(), 'dist/icon.ico'),
+    path.join(app.getAppPath(), 'dist/icon.png'),
+    path.join(app.getAppPath(), 'public/icon.ico'),
+    path.join(app.getAppPath(), 'public/icon.png'),
+    path.join(app.getAppPath(), 'build/icon.ico'),
+    path.join(app.getAppPath(), 'build/icon.png'),
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      return p;
+    }
+  }
+  return undefined;
+}
+
 function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -25,6 +45,7 @@ function createMainWindow() {
     frame: false,
     titleBarStyle: 'hidden',
     backgroundColor: '#FAF8F5',
+    icon: getAppIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -62,6 +83,7 @@ function createPlayerWindow() {
     frame: false,
     title: 'Crate - Mini Player',
     backgroundColor: '#FAF8F5',
+    icon: getAppIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -85,6 +107,9 @@ function createPlayerWindow() {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('dev.chaos-architect.crate');
+  }
   createMainWindow();
 
   app.on('activate', () => {
