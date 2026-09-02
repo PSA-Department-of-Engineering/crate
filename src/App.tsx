@@ -10,6 +10,7 @@ import { WebFallbackView } from './components/WebFallbackView';
 import { OnboardingModal } from './components/OnboardingModal';
 import { RulesModal } from './components/RulesModal';
 import { FixModal } from './components/FixModal';
+import { SettingsModal } from './components/SettingsModal';
 import { useLibrary } from './hooks/useLibrary';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useSync } from './hooks/useSync';
@@ -24,6 +25,7 @@ export const App: React.FC = () => {
   );
   const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
   const [showFixModal, setShowFixModal] = useState<boolean>(false);
+  const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
 
   const library = useLibrary();
   const player = useAudioPlayer();
@@ -121,7 +123,7 @@ export const App: React.FC = () => {
   };
 
   const handleOpenSettings = () => {
-    library.setShowOnboardingModal(true);
+    setShowSettingsModal(true);
   };
 
   return (
@@ -265,6 +267,15 @@ export const App: React.FC = () => {
             await library.updateTrackTags(track.filePath, violation.proposedTagUpdates);
           }
         }}
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        libraryPath={library.libraryPath}
+        onChangeLibraryFolder={handleOpenFolder}
+        isScanning={library.isScanning}
       />
 
       {/* First-Launch / Missing Library Onboarding Modal */}

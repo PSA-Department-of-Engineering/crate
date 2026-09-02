@@ -166,6 +166,8 @@ export interface CrateBridge {
   onPlayerState: (callback: (state: Partial<PlayerState>) => void) => () => void;
   getStoredLibraryPath: () => Promise<string | null>;
   setStoredLibraryPath: (folderPath: string) => Promise<void>;
+  getSettings?: () => Promise<Record<string, any>>;
+  saveSettings?: (updates: Record<string, any>) => Promise<Record<string, any>>;
   showInFolder?: (filePath: string) => Promise<void>;
   windowControl: (action: 'minimize' | 'maximize' | 'close') => void;
 }
