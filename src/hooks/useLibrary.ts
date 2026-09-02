@@ -57,7 +57,20 @@ export function useLibrary() {
           setLibraryPath(storedPath);
           setShowOnboardingModal(false);
 
-          // Auto-scan saved library path
+          // Instant cold start: Load cached tracks from SQLite immediately (<10ms)
+          if (typeof window !== 'undefined' && window.crateBridge?.getCachedLibrary) {
+            try {
+              const cached = await window.crateBridge.getCachedLibrary();
+              if (isMounted && cached.tracks.length > 0) {
+                setTracks(cached.tracks);
+                setCorruptFiles(cached.corruptFiles);
+              }
+            } catch (err) {
+              console.error('Failed to load cached library from database:', err);
+            }
+          }
+
+          // Background incremental scan: Reconcile any changed/added/deleted files
           if (typeof window !== 'undefined' && window.crateBridge?.scanLibrary) {
             setIsScanning(true);
             try {

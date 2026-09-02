@@ -2,17 +2,20 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Track } from '../../src/models/types';
 import { AudioMetadataService } from './audio-metadata';
+import { LibraryDatabaseService } from './library-database';
 
 export class LibraryScannerService {
   private metadataService: AudioMetadataService;
+  private dbService?: LibraryDatabaseService;
 
-  constructor(metadataService?: AudioMetadataService) {
+  constructor(metadataService?: AudioMetadataService, dbService?: LibraryDatabaseService) {
     this.metadataService = metadataService || new AudioMetadataService();
+    this.dbService = dbService;
   }
 
   /**
    * Recursively scans a root directory for MP3 and FLAC files.
-   * Isolates corrupt files gracefully.
+   * Leverages SQLite database cache for high performance incremental scans.
    */
   async scanDirectory(
     dirPath: string,
@@ -20,6 +23,79 @@ export class LibraryScannerService {
   ): Promise<{ tracks: Track[]; corruptFiles: string[] }> {
     const audioFilePaths: string[] = [];
     await this.collectAudioFiles(dirPath, audioFilePaths);
+    const audioPathSet = new Set(audioFilePaths.map(p => path.resolve(p).toLowerCase()));
+
+    // If SQLite database service is available, run high-speed incremental scan
+    if (this.dbService) {
+      const cachedMtimeMap = this.dbService.getTracksMtimeMap();
+
+      // Find deleted files (files in DB under this dirPath that no longer exist on disk)
+      const normalizedDirPath = path.resolve(dirPath).toLowerCase();
+      const filesToDelete: string[] = [];
+      for (const cachedPath of cachedMtimeMap.keys()) {
+        const normalizedCached = path.resolve(cachedPath).toLowerCase();
+        if (normalizedCached.startsWith(normalizedDirPath) && !audioPathSet.has(normalizedCached)) {
+          filesToDelete.push(cachedPath);
+        }
+      }
+      if (filesToDelete.length > 0) {
+        this.dbService.deleteTracksByPaths(filesToDelete);
+      }
+
+      // Check which files need scanning (new or modified)
+      const filesToScan: string[] = [];
+      for (const filePath of audioFilePaths) {
+        const cached = cachedMtimeMap.get(filePath);
+        if (!cached) {
+          filesToScan.push(filePath);
+        } else {
+          try {
+            const stat = await fs.promises.stat(filePath);
+            if (Math.floor(stat.mtimeMs) !== Math.floor(cached.mtime) || stat.size !== cached.fileSize) {
+              filesToScan.push(filePath);
+            }
+          } catch {
+            filesToScan.push(filePath);
+          }
+        }
+      }
+
+      // Scan only modified/new files
+      const scannedTracks: Track[] = [];
+      let count = 0;
+      for (const filePath of filesToScan) {
+        count++;
+        if (onProgress) {
+          onProgress(count, filePath);
+        }
+
+        try {
+          const track = await this.metadataService.readTrack(filePath, { skipCovers: true });
+          scannedTracks.push(track);
+        } catch {
+          scannedTracks.push({
+            id: filePath,
+            filePath,
+            title: path.basename(filePath),
+            artist: 'Unknown Artist',
+            album: 'Unknown Album',
+            duration: 0,
+            format: filePath.toLowerCase().endsWith('.flac') ? 'flac' : 'mp3',
+            fileSize: 0,
+            mtime: Date.now(),
+            isCorrupt: true,
+          });
+        }
+      }
+
+      if (scannedTracks.length > 0) {
+        this.dbService.upsertTracks(scannedTracks);
+      }
+
+      const allTracks = this.dbService.getAllTracks();
+      const corruptFiles = allTracks.filter(t => t.isCorrupt).map(t => t.filePath);
+      return { tracks: allTracks, corruptFiles };
+    }
 
     const tracks: Track[] = [];
     const corruptFiles: string[] = [];

@@ -21,6 +21,10 @@ const bridge: CrateBridge = {
     return await ipcRenderer.invoke('library:scan', folderPath);
   },
 
+  getCachedLibrary: async (): Promise<{ tracks: Track[]; corruptFiles: string[] }> => {
+    return await ipcRenderer.invoke('library:get-cached');
+  },
+
   getTrackArtwork: async (filePath: string): Promise<EmbeddedArtwork | null> => {
     return await ipcRenderer.invoke('metadata:get-artwork', filePath);
   },

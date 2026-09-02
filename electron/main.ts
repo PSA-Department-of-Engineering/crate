@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { AudioMetadataService } from './services/audio-metadata';
 import { LibraryScannerService } from './services/library-scanner';
+import { LibraryDatabaseService } from './services/library-database';
 import { SyncManagerService } from './services/sync-manager';
 import { PlaylistExporterService } from './services/playlist-exporter';
 import { SettingsManagerService } from './services/settings-manager';
@@ -11,8 +12,9 @@ import { TagUpdates, Track, Playlist, SyncPlan } from '../src/models/types';
 let mainWindow: BrowserWindow | null = null;
 let playerWindow: BrowserWindow | null = null;
 
+const dbService = new LibraryDatabaseService();
 const metadataService = new AudioMetadataService();
-const libraryScanner = new LibraryScannerService(metadataService);
+const libraryScanner = new LibraryScannerService(metadataService, dbService);
 const syncManager = new SyncManagerService();
 const settingsManager = new SettingsManagerService();
 
@@ -160,6 +162,12 @@ ipcMain.handle('library:scan', async (_event, folderPath: string) => {
   return await libraryScanner.scanDirectory(folderPath);
 });
 
+ipcMain.handle('library:get-cached', async () => {
+  const tracks = dbService.getAllTracks();
+  const corruptFiles = tracks.filter(t => t.isCorrupt).map(t => t.filePath);
+  return { tracks, corruptFiles };
+});
+
 // Artwork lazy-loading handler
 ipcMain.handle('metadata:get-artwork', async (_event, filePath: string) => {
   return await metadataService.getArtwork(filePath);
@@ -184,7 +192,9 @@ ipcMain.handle('settings:save', async (_event, updates) => {
 
 // Tag editing handlers
 ipcMain.handle('tags:save', async (_event, data: { filePath: string; tags: TagUpdates }) => {
-  return await metadataService.writeTrackTags(data.filePath, data.tags);
+  const updated = await metadataService.writeTrackTags(data.filePath, data.tags);
+  dbService.upsertTrack(updated);
+  return updated;
 });
 
 ipcMain.handle('tags:batch-save', async (_event, data: { filePaths: string[]; tags: TagUpdates }) => {
@@ -193,6 +203,7 @@ ipcMain.handle('tags:batch-save', async (_event, data: { filePaths: string[]; ta
     const updated = await metadataService.writeTrackTags(filePath, data.tags);
     updatedTracks.push(updated);
   }
+  dbService.upsertTracks(updatedTracks);
   return updatedTracks;
 });
 
