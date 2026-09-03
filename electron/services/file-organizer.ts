@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { Track } from '../../src/models/types';
+import { Track, AudioFormat } from '../../src/models/types';
 
 /**
  * Forbidden characters in FAT32, exFAT, and Windows filesystems:
@@ -51,6 +51,7 @@ export function formatTrackNumber(trackNum?: number): string {
 
 export interface OrganizationOptions {
   multiDiscSubfolder?: boolean; // true for "Disc 1/01 Title.mp3", false for "1-01 Title.mp3"
+  targetFormat?: AudioFormat;
 }
 
 /**
@@ -63,7 +64,8 @@ export function getCarRelativePath(track: Track, options: OrganizationOptions = 
   const album = sanitizeFat32Segment(track.album || 'Unknown Album');
   const title = sanitizeFat32Segment(track.title || 'Unknown Title');
   const trackNumStr = formatTrackNumber(track.trackNumber);
-  const ext = track.format === 'flac' ? '.flac' : '.mp3';
+  const activeFormat = options.targetFormat || track.format;
+  const ext = activeFormat === 'flac' ? '.flac' : activeFormat === 'wav' ? '.wav' : '.mp3';
 
   let filename = `${trackNumStr} ${title}${ext}`;
 

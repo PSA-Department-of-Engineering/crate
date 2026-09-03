@@ -1,7 +1,7 @@
 import { app } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import { Track } from '../../src/models/types';
+import { Track, AudioFormat } from '../../src/models/types';
 
 // Safe resolution for node:sqlite built-in across CommonJS & ESM (vitest)
 let DatabaseSyncClass: any = null;
@@ -148,6 +148,8 @@ export class LibraryDatabaseService {
         duration REAL NOT NULL DEFAULT 0,
         bitrate INTEGER,
         sample_rate INTEGER,
+        bits_per_sample INTEGER,
+        codec TEXT,
         format TEXT NOT NULL DEFAULT 'mp3',
         file_size INTEGER NOT NULL DEFAULT 0,
         mtime INTEGER NOT NULL DEFAULT 0,
@@ -161,6 +163,18 @@ export class LibraryDatabaseService {
       CREATE INDEX IF NOT EXISTS idx_tracks_genre ON tracks(genre);
       CREATE INDEX IF NOT EXISTS idx_tracks_mtime ON tracks(mtime);
     `);
+
+    // Ensure columns exist on legacy databases
+    try {
+      this.db.exec('ALTER TABLE tracks ADD COLUMN bits_per_sample INTEGER;');
+    } catch {
+      // Column already exists
+    }
+    try {
+      this.db.exec('ALTER TABLE tracks ADD COLUMN codec TEXT;');
+    } catch {
+      // Column already exists
+    }
   }
 
   getAllTracks(): Track[] {
@@ -182,6 +196,8 @@ export class LibraryDatabaseService {
           duration,
           bitrate,
           sample_rate as sampleRate,
+          bits_per_sample as bitsPerSample,
+          codec,
           format,
           file_size as fileSize,
           mtime,
@@ -207,7 +223,9 @@ export class LibraryDatabaseService {
         duration: Number(r.duration || 0),
         bitrate: r.bitrate !== null && r.bitrate !== undefined ? Number(r.bitrate) : undefined,
         sampleRate: r.sampleRate !== null && r.sampleRate !== undefined ? Number(r.sampleRate) : undefined,
-        format: (r.format || 'mp3') as 'mp3' | 'flac',
+        bitsPerSample: r.bitsPerSample !== null && r.bitsPerSample !== undefined ? Number(r.bitsPerSample) : undefined,
+        codec: r.codec || undefined,
+        format: (r.format || 'mp3') as AudioFormat,
         fileSize: Number(r.fileSize || 0),
         mtime: Number(r.mtime || 0),
         isCorrupt: Boolean(r.isCorrupt),
@@ -264,6 +282,8 @@ export class LibraryDatabaseService {
           duration,
           bitrate,
           sample_rate as sampleRate,
+          bits_per_sample as bitsPerSample,
+          codec,
           format,
           file_size as fileSize,
           mtime,
@@ -291,7 +311,9 @@ export class LibraryDatabaseService {
         duration: Number(r.duration || 0),
         bitrate: r.bitrate !== null && r.bitrate !== undefined ? Number(r.bitrate) : undefined,
         sampleRate: r.sampleRate !== null && r.sampleRate !== undefined ? Number(r.sampleRate) : undefined,
-        format: (r.format || 'mp3') as 'mp3' | 'flac',
+        bitsPerSample: r.bitsPerSample !== null && r.bitsPerSample !== undefined ? Number(r.bitsPerSample) : undefined,
+        codec: r.codec || undefined,
+        format: (r.format || 'mp3') as AudioFormat,
         fileSize: Number(r.fileSize || 0),
         mtime: Number(r.mtime || 0),
         isCorrupt: Boolean(r.isCorrupt),
@@ -308,11 +330,13 @@ export class LibraryDatabaseService {
           id, file_path, title, artist, album, album_artist,
           track_number, total_tracks, disc_number, total_discs,
           year, genre, duration, bitrate, sample_rate,
+          bits_per_sample, codec,
           format, file_size, mtime, is_corrupt, updated_at
         ) VALUES (
           ?, ?, ?, ?, ?, ?,
           ?, ?, ?, ?,
           ?, ?, ?, ?, ?,
+          ?, ?,
           ?, ?, ?, ?, ?
         )
         ON CONFLICT(file_path) DO UPDATE SET
@@ -330,6 +354,8 @@ export class LibraryDatabaseService {
           duration = excluded.duration,
           bitrate = excluded.bitrate,
           sample_rate = excluded.sample_rate,
+          bits_per_sample = excluded.bits_per_sample,
+          codec = excluded.codec,
           format = excluded.format,
           file_size = excluded.file_size,
           mtime = excluded.mtime,
@@ -353,6 +379,8 @@ export class LibraryDatabaseService {
         track.duration,
         track.bitrate ?? null,
         track.sampleRate ?? null,
+        track.bitsPerSample ?? null,
+        track.codec ?? null,
         track.format,
         track.fileSize,
         track.mtime,
@@ -377,11 +405,13 @@ export class LibraryDatabaseService {
             id, file_path, title, artist, album, album_artist,
             track_number, total_tracks, disc_number, total_discs,
             year, genre, duration, bitrate, sample_rate,
+            bits_per_sample, codec,
             format, file_size, mtime, is_corrupt, updated_at
           ) VALUES (
             ?, ?, ?, ?, ?, ?,
             ?, ?, ?, ?,
             ?, ?, ?, ?, ?,
+            ?, ?,
             ?, ?, ?, ?, ?
           )
           ON CONFLICT(file_path) DO UPDATE SET
@@ -399,6 +429,8 @@ export class LibraryDatabaseService {
             duration = excluded.duration,
             bitrate = excluded.bitrate,
             sample_rate = excluded.sample_rate,
+            bits_per_sample = excluded.bits_per_sample,
+            codec = excluded.codec,
             format = excluded.format,
             file_size = excluded.file_size,
             mtime = excluded.mtime,
@@ -424,6 +456,8 @@ export class LibraryDatabaseService {
             t.duration,
             t.bitrate ?? null,
             t.sampleRate ?? null,
+            t.bitsPerSample ?? null,
+            t.codec ?? null,
             t.format,
             t.fileSize,
             t.mtime,

@@ -207,4 +207,29 @@ describe('Embedded SQLite Library Database & Incremental Sync', () => {
       await fs.promises.rm(tempDir, { recursive: true, force: true });
     }
   });
+
+  it('Supports WAV audio format ingestion and stores bitsPerSample and codec (#59)', () => {
+    const dbService = new LibraryDatabaseService(':memory:');
+    const wavTrack: Track = {
+      id: 'wav-track-1',
+      filePath: 'C:/Music/Producer/Album/01 Beat.wav',
+      title: 'Beat',
+      artist: 'Producer',
+      album: 'Album',
+      duration: 150,
+      format: 'wav',
+      bitsPerSample: 32,
+      codec: 'IEEE_FLOAT',
+      fileSize: 60000000,
+      mtime: 1700000000000,
+    };
+
+    dbService.upsertTrack(wavTrack);
+    const retrieved = dbService.getTrackByPath(wavTrack.filePath);
+
+    expect(retrieved).not.toBeNull();
+    expect(retrieved?.format).toBe('wav');
+    expect(retrieved?.bitsPerSample).toBe(32);
+    expect(retrieved?.codec).toBe('IEEE_FLOAT');
+  });
 });

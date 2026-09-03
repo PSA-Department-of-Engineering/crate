@@ -11,7 +11,7 @@ export class AudioMetadataService {
   async readTrack(filePath: string, options: { skipCovers?: boolean } = { skipCovers: true }): Promise<Track> {
     const stats = await fs.promises.stat(filePath);
     const ext = path.extname(filePath).toLowerCase();
-    const format: AudioFormat = ext === '.flac' ? 'flac' : 'mp3';
+    const format: AudioFormat = ext === '.flac' ? 'flac' : ext === '.wav' ? 'wav' : 'mp3';
     const skipCovers = options?.skipCovers ?? true;
 
     try {
@@ -45,6 +45,8 @@ export class AudioMetadataService {
         duration: formatInfo.duration || 0,
         bitrate: formatInfo.bitrate ? Math.round(formatInfo.bitrate / 1000) : undefined,
         sampleRate: formatInfo.sampleRate,
+        bitsPerSample: formatInfo.bitsPerSample,
+        codec: formatInfo.codec,
         format,
         picture,
         fileSize: stats.size,

@@ -1,4 +1,4 @@
-import { describe, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { intent } from './intent-helper';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -142,13 +142,18 @@ describe('Car Sync Engine & Delta Synchronization', () => {
     await fs.promises.rm(tempDestDir, { recursive: true, force: true });
   });
 
-  intent('INT-SYNC-003', 'Stale file detector finds orphaned tracks on destination drive for pruning', async () => {
+  intent('INT-SYNC-003', 'Stale file detector finds orphaned tracks and junk files on destination drive for pruning', async () => {
     // Stale file detection on destination drive
     const tempDestDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-stale-dst-'));
     const staleFolder = path.join(tempDestDir, 'Old Artist', 'Old Album');
     await fs.promises.mkdir(staleFolder, { recursive: true });
     const staleFile = path.join(staleFolder, '01 Old Track.mp3');
+    const desktopIni = path.join(staleFolder, 'desktop.ini');
+    const macStub = path.join(staleFolder, '._01 Old Track.mp3');
+
     await fs.promises.writeFile(staleFile, Buffer.alloc(1000, 0x99));
+    await fs.promises.writeFile(desktopIni, Buffer.from('[.ShellClassInfo]'));
+    await fs.promises.writeFile(macStub, Buffer.alloc(50, 0x00));
 
     const plan = await syncManager.analyzeSync({
       sourceTracks: sampleTracks,
@@ -156,8 +161,10 @@ describe('Car Sync Engine & Delta Synchronization', () => {
       scope: 'all',
     });
 
-    expect(plan.staleFiles.length).toBe(1);
-    expect(plan.staleFiles[0]).toContain('Old Artist/Old Album/01 Old Track.mp3');
+    expect(plan.staleFiles.length).toBe(3);
+    expect(plan.staleFiles.some(f => f.includes('01 Old Track.mp3'))).toBe(true);
+    expect(plan.staleFiles.some(f => f.includes('desktop.ini'))).toBe(true);
+    expect(plan.staleFiles.some(f => f.includes('._01 Old Track.mp3'))).toBe(true);
 
     // Execute with pruneStale = true
     const res = await syncManager.executeSync({
@@ -166,10 +173,106 @@ describe('Car Sync Engine & Delta Synchronization', () => {
       pruneStale: true,
     });
 
-    expect(res.deleted).toBe(1);
-    const exists = await fs.promises.access(staleFile).then(() => true).catch(() => false);
-    expect(exists).toBe(false);
+    expect(res.deleted).toBe(3);
+    const staleExists = await fs.promises.access(staleFile).then(() => true).catch(() => false);
+    const iniExists = await fs.promises.access(desktopIni).then(() => true).catch(() => false);
+    const stubExists = await fs.promises.access(macStub).then(() => true).catch(() => false);
+
+    expect(staleExists).toBe(false);
+    expect(iniExists).toBe(false);
+    expect(stubExists).toBe(false);
 
     await fs.promises.rm(tempDestDir, { recursive: true, force: true });
   });
+
+  describe('Automotive Transcoding & .crate-sync.json Manifest (#63, #64)', () => {
+    it('detects 32-bit float WAV and sets targetFormat to flac with needsTranscode', async () => {
+      const tempDestDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-transcode-dst-'));
+      const wav32Track: Track = {
+        id: 'wav-32',
+        filePath: 'C:/Music/Producer/Album/Beat.wav',
+        title: 'Beat',
+        artist: 'Producer',
+        album: 'Beats',
+        trackNumber: 1,
+        duration: 120,
+        format: 'wav',
+        codec: 'IEEE_FLOAT',
+        bitsPerSample: 32,
+        fileSize: 80000000,
+        mtime: 1600000000000,
+      };
+
+      const plan = await syncManager.analyzeSync({
+        sourceTracks: [wav32Track],
+        targetVolumePath: tempDestDir,
+        scope: 'all',
+      });
+
+      expect(plan.items.length).toBe(1);
+      expect(plan.items[0].needsTranscode).toBe(true);
+      expect(plan.items[0].targetFormat).toBe('flac');
+      expect(plan.items[0].targetRelativePath).toMatch(/\.flac$/);
+
+      await fs.promises.rm(tempDestDir, { recursive: true, force: true });
+    });
+
+    it('writes .crate-sync.json manifest on sync and keeps transcoded files on repeat runs', async () => {
+      const tempDestDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-manifest-dst-'));
+      const tempSrcDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-manifest-src-'));
+
+      const testFile = path.join(tempSrcDir, 'test.mp3');
+      await fs.promises.writeFile(testFile, Buffer.alloc(2000, 0x55));
+
+      const track: Track = {
+        id: 'track-manifest-1',
+        filePath: testFile,
+        title: 'Manifest Song',
+        artist: 'Artist',
+        album: 'Album',
+        trackNumber: 1,
+        duration: 60,
+        format: 'mp3',
+        fileSize: 2000,
+        mtime: 1600000000000,
+      };
+
+      const plan1 = await syncManager.analyzeSync({
+        sourceTracks: [track],
+        targetVolumePath: tempDestDir,
+        scope: 'all',
+      });
+
+      expect(plan1.items[0].action).toBe('add');
+
+      await syncManager.executeSync({
+        plan: plan1,
+        targetVolumePath: tempDestDir,
+        pruneStale: false,
+      });
+
+      // Verify .crate-sync.json was created on target
+      const manifestPath = path.join(tempDestDir, '.crate-sync.json');
+      const manifestExists = await fs.promises.access(manifestPath).then(() => true).catch(() => false);
+      expect(manifestExists).toBe(true);
+
+      const manifestContent = JSON.parse(await fs.promises.readFile(manifestPath, 'utf-8'));
+      expect(manifestContent.files).toBeDefined();
+      expect(Object.keys(manifestContent.files).length).toBe(1);
+
+      // Repeat analysis: should be recognized via manifest as 'keep'
+      const plan2 = await syncManager.analyzeSync({
+        sourceTracks: [track],
+        targetVolumePath: tempDestDir,
+        scope: 'all',
+      });
+
+      expect(plan2.items[0].action).toBe('keep');
+      expect(plan2.totalFilesToTransfer).toBe(0);
+
+      await fs.promises.rm(tempSrcDir, { recursive: true, force: true });
+      await fs.promises.rm(tempDestDir, { recursive: true, force: true });
+    });
+  });
 });
+

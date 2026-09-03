@@ -6,6 +6,9 @@ files:
     - dist/**/*
     - dist-electron/**/*
     - package.json
+extraResources:
+    - from: node_modules/ffmpeg-static/ffmpeg.exe
+      to: ffmpeg.exe
 win:
     icon: build/icon.ico
     target:

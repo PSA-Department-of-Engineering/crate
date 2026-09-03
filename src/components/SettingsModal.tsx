@@ -10,6 +10,7 @@ import {
   Save,
   Check,
   Loader2,
+  Palette,
 } from 'lucide-react';
 
 export interface SettingsModalProps {
@@ -27,6 +28,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onChangeLibraryFolder,
   isScanning = false,
 }) => {
+  const [theme, setTheme] = useState<'cream' | 'glass'>('cream');
   const [spotifySecret, setSpotifySecret] = useState<string>('');
   const [showSecret, setShowSecret] = useState<boolean>(false);
   const [isSaved, setIsSaved] = useState<boolean>(false);
@@ -59,6 +61,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           }
         }
         if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+          const savedTheme = localStorage.getItem('crate_theme') as 'cream' | 'glass' | null;
+          if (isMounted && savedTheme && (savedTheme === 'cream' || savedTheme === 'glass')) {
+            setTheme(savedTheme);
+          }
           const localSecret = localStorage.getItem('crate_spotify_secret');
           if (isMounted && localSecret) {
             setSpotifySecret(localSecret);
@@ -170,6 +176,66 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </>
                 )}
               </button>
+            </div>
+          </div>
+
+          {/* Section: Appearance & Theme */}
+          <div className="p-4 rounded-lg border border-border bg-secondary/30 space-y-3">
+            <div className="flex items-center gap-2">
+              <Palette className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Appearance & Theme</h3>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Select your interface aesthetic. (Scaffold preview - themes in development).
+            </p>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border border-border/80 bg-background/60">
+              <div className="flex-1">
+                <span className="text-xs font-medium text-foreground block">Active Theme</span>
+                <span className="text-[11px] text-muted-foreground">
+                  {theme === 'cream' ? 'Warm tactile cream/nude aesthetic' : 'Liquid translucent dark glass aesthetic'}
+                </span>
+              </div>
+
+              {/* Theme Slider / Segmented Switch */}
+              <div
+                className="relative inline-flex p-1 bg-secondary border border-border rounded-xl shadow-inner select-none shrink-0"
+                role="radiogroup"
+                aria-label="Theme selector"
+              >
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={theme === 'cream'}
+                  onClick={() => {
+                    setTheme('cream');
+                    try { localStorage.setItem('crate_theme', 'cream'); } catch {}
+                  }}
+                  className={`relative z-10 px-4 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
+                    theme === 'cream'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Cream
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={theme === 'glass'}
+                  onClick={() => {
+                    setTheme('glass');
+                    try { localStorage.setItem('crate_theme', 'glass'); } catch {}
+                  }}
+                  className={`relative z-10 px-4 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
+                    theme === 'glass'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Glass
+                </button>
+              </div>
             </div>
           </div>
 
