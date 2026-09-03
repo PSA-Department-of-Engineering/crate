@@ -4,3 +4,6 @@ export * from './StripPromoJunkRule';
 export * from './MultiDiscStandardizerRule';
 export * from './FilesystemSanitizeRule';
 export * from './CompanionJunkCleanupRule';
+export * from './MaxPathLengthRule';
+export * from './AutoEmbedFolderArtworkRule';
+export * from './ArtworkDimensionRule';

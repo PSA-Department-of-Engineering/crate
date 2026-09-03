@@ -80,7 +80,7 @@ export class LibraryScannerService {
             artist: 'Unknown Artist',
             album: 'Unknown Album',
             duration: 0,
-            format: filePath.toLowerCase().endsWith('.flac') ? 'flac' : 'mp3',
+            format: filePath.toLowerCase().endsWith('.flac') ? 'flac' : filePath.toLowerCase().endsWith('.wav') ? 'wav' : 'mp3',
             fileSize: 0,
             mtime: Date.now(),
             isCorrupt: true,
@@ -122,7 +122,7 @@ export class LibraryScannerService {
           artist: 'Unknown Artist',
           album: 'Unknown Album',
           duration: 0,
-          format: filePath.toLowerCase().endsWith('.flac') ? 'flac' : 'mp3',
+          format: filePath.toLowerCase().endsWith('.flac') ? 'flac' : filePath.toLowerCase().endsWith('.wav') ? 'wav' : 'mp3',
           fileSize: 0,
           mtime: Date.now(),
           isCorrupt: true,
@@ -168,7 +168,7 @@ export class LibraryScannerService {
           await this.collectAudioFiles(fullPath, results, visitedDirs);
         } else if (entry.isFile()) {
           const ext = path.extname(entry.name).toLowerCase();
-          if (ext === '.mp3' || ext === '.flac') {
+          if (ext === '.mp3' || ext === '.flac' || ext === '.wav') {
             results.push(fullPath);
           }
         } else if (entry.isSymbolicLink()) {
@@ -178,7 +178,7 @@ export class LibraryScannerService {
               await this.collectAudioFiles(fullPath, results, visitedDirs);
             } else if (stat.isFile()) {
               const ext = path.extname(entry.name).toLowerCase();
-              if (ext === '.mp3' || ext === '.flac') {
+              if (ext === '.mp3' || ext === '.flac' || ext === '.wav') {
                 results.push(fullPath);
               }
             }

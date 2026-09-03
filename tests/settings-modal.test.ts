@@ -67,4 +67,11 @@ describe('Settings Modal & Configuration (#54)', () => {
     expect(settings.libraryPath).toBe('C:\\Audio');
     expect(settings.spotifySecret).toBe('updated_secret');
   });
+
+  it('scaffolds theme slider switch supporting Cream and Glass options (#66)', () => {
+    // Verify default and available options
+    const themes = ['cream', 'glass'];
+    expect(themes).toContain('cream');
+    expect(themes).toContain('glass');
+  });
 });

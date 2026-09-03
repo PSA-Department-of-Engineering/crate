@@ -1,4 +1,4 @@
-export type AudioFormat = 'mp3' | 'flac';
+export type AudioFormat = 'mp3' | 'flac' | 'wav';
 
 export interface EmbeddedArtwork {
   format: string; // e.g., 'image/jpeg', 'image/png'
@@ -21,6 +21,8 @@ export interface Track {
   duration: number; // in seconds
   bitrate?: number; // in kbps
   sampleRate?: number; // in Hz
+  bitsPerSample?: number; // in bits (e.g. 16, 24, 32)
+  codec?: string;         // e.g. 'PCM', 'IEEE_FLOAT', 'MPEG 1 Layer 3', 'FLAC'
   format: AudioFormat;
   picture?: EmbeddedArtwork;
   fileSize: number; // in bytes
@@ -85,6 +87,8 @@ export interface SyncPlanItem {
   sourceMtime: number;
   destSize?: number;
   destMtime?: number;
+  needsTranscode?: boolean;
+  targetFormat?: AudioFormat;
 }
 
 export interface SyncPlan {

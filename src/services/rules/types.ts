@@ -21,6 +21,7 @@ export interface RuleContext {
   libraryRoot?: string;
   allTracks?: Track[];
   discoveredCompanionFiles?: string[];
+  discoveredCompanionFileSizes?: Record<string, number>;
 }
 
 export interface Rule {

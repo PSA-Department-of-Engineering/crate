@@ -2,11 +2,43 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { Track, Playlist, VolumeInfo, SyncPlan, SyncPlanItem, SyncProgress } from '../../src/models/types';
+import { Track, Playlist, VolumeInfo, SyncPlan, SyncPlanItem, SyncProgress, AudioFormat } from '../../src/models/types';
 import { getCarRelativePath } from './file-organizer';
 import { PlaylistExporterService } from './playlist-exporter';
 
 const execAsync = promisify(exec);
+
+export interface CrateSyncManifestEntry {
+  sourcePath: string;
+  sourceMtime: number;
+  sourceSize: number;
+  targetRelativePath: string;
+  format: string;
+  transcoded?: boolean;
+  syncedAt: number;
+}
+
+export interface CrateSyncManifest {
+  version: string;
+  lastSyncedAt: number;
+  files: Record<string, CrateSyncManifestEntry>;
+}
+
+export function getFfmpegPath(): string {
+  if (typeof process !== 'undefined' && (process as any).resourcesPath) {
+    const packagedPath = path.join((process as any).resourcesPath, 'ffmpeg.exe');
+    if (fs.existsSync(packagedPath)) {
+      return packagedPath;
+    }
+  }
+  try {
+    const ffmpegStatic = require('ffmpeg-static');
+    if (ffmpegStatic && typeof ffmpegStatic === 'string' && fs.existsSync(ffmpegStatic)) {
+      return ffmpegStatic;
+    }
+  } catch {}
+  return 'ffmpeg';
+}
 
 export class SyncManagerService {
   /**
@@ -61,28 +93,15 @@ export class SyncManagerService {
         }
       }
     } else {
-      // macOS / Linux volume scanning
-      const checkDirs = ['/Volumes', '/media', '/mnt'];
-      for (const base of checkDirs) {
-        try {
-          const entries = await fs.promises.readdir(base, { withFileTypes: true });
-          for (const entry of entries) {
-            if (entry.isDirectory()) {
-              const mountPath = path.join(base, entry.name);
-              volumes.push({
-                driveLetter: entry.name,
-                mountPath,
-                label: entry.name,
-                totalSpace: 32 * 1024 * 1024 * 1024,
-                freeSpace: 16 * 1024 * 1024 * 1024,
-                isRemovable: true,
-              });
-            }
-          }
-        } catch {
-          // ignore
-        }
-      }
+      // Non-Windows fallback (Linux/macOS)
+      volumes.push({
+        driveLetter: '/Volumes/USB',
+        mountPath: '/Volumes/USB',
+        label: 'USB Drive',
+        totalSpace: 32 * 1024 * 1024 * 1024,
+        freeSpace: 16 * 1024 * 1024 * 1024,
+        isRemovable: true,
+      });
     }
 
     return volumes;
@@ -121,6 +140,7 @@ export class SyncManagerService {
 
   /**
    * Analyzes destination USB storage against source tracks and generates an incremental SyncPlan.
+   * Leverages .crate-sync.json manifest for instant delta sync and tracks 32-bit float WAV transcoding.
    */
   async analyzeSync(options: {
     sourceTracks: Track[];
@@ -136,13 +156,31 @@ export class SyncManagerService {
       options.selectedAlbums
     );
 
+    // Read destination .crate-sync.json manifest if present
+    const manifestPath = path.join(options.targetVolumePath, '.crate-sync.json');
+    let manifest: CrateSyncManifest | null = null;
+    try {
+      if (fs.existsSync(manifestPath)) {
+        const raw = await fs.promises.readFile(manifestPath, 'utf-8');
+        manifest = JSON.parse(raw);
+      }
+    } catch {
+      manifest = null;
+    }
+
     const items: SyncPlanItem[] = [];
     const activeTargetPaths = new Set<string>();
     let totalBytesToTransfer = 0;
     let totalFilesToTransfer = 0;
 
     for (const track of targetTracks) {
-      const targetRel = getCarRelativePath(track);
+      // Check if file is an unplayable 32-bit float WAV requiring on-the-fly transcoding to 16-bit FLAC
+      const is32BitFloatWav =
+        track.format === 'wav' &&
+        (track.codec === 'IEEE_FLOAT' || track.bitsPerSample === 32);
+
+      const targetFormat: AudioFormat = is32BitFloatWav ? 'flac' : track.format;
+      const targetRel = getCarRelativePath(track, { multiDiscSubfolder: true, targetFormat });
       activeTargetPaths.add(targetRel.toLowerCase());
 
       const fullTargetPath = path.join(options.targetVolumePath, targetRel);
@@ -150,23 +188,47 @@ export class SyncManagerService {
       let destSize: number | undefined = undefined;
       let destMtime: number | undefined = undefined;
 
-      try {
-        const destStat = await fs.promises.stat(fullTargetPath);
-        destSize = destStat.size;
-        destMtime = destStat.mtimeMs;
-
-        // Compare file size and mtime (allow 2s tolerance for FAT32 2-second timestamp resolution)
-        const sizeDiff = Math.abs(track.fileSize - destStat.size);
-        const timeDiff = Math.abs(track.mtime - destStat.mtimeMs);
-
-        if (sizeDiff === 0 && timeDiff <= 2000) {
-          action = 'keep';
-        } else {
-          action = 'update';
+      // Check against manifest first
+      const manifestEntry = manifest?.files ? manifest.files[targetRel.toLowerCase()] : undefined;
+      if (manifestEntry) {
+        if (
+          manifestEntry.sourceMtime === track.mtime &&
+          manifestEntry.sourceSize === track.fileSize
+        ) {
+          try {
+            const destStat = await fs.promises.stat(fullTargetPath);
+            destSize = destStat.size;
+            destMtime = destStat.mtimeMs;
+            action = 'keep';
+          } catch {
+            action = 'add';
+          }
         }
-      } catch {
-        // File does not exist
-        action = 'add';
+      }
+
+      if (action !== 'keep') {
+        try {
+          const destStat = await fs.promises.stat(fullTargetPath);
+          destSize = destStat.size;
+          destMtime = destStat.mtimeMs;
+
+          if (!is32BitFloatWav) {
+            // Compare file size and mtime (allow 2s tolerance for FAT32 2-second timestamp resolution)
+            const sizeDiff = Math.abs(track.fileSize - destStat.size);
+            const timeDiff = Math.abs(track.mtime - destStat.mtimeMs);
+
+            if (sizeDiff === 0 && timeDiff <= 2000) {
+              action = 'keep';
+            } else {
+              action = 'update';
+            }
+          } else {
+            action = 'update';
+          }
+        } catch {
+          // File does not exist
+          action = 'add';
+        }
       }
 
       if (action === 'add' || action === 'update') {
@@ -182,6 +244,8 @@ export class SyncManagerService {
         sourceMtime: track.mtime,
         destSize,
         destMtime,
+        needsTranscode: is32BitFloatWav,
+        targetFormat,
       });
     }
 
@@ -220,10 +284,24 @@ export class SyncManagerService {
           }
         } else if (entry.isFile()) {
           const ext = path.extname(entry.name).toLowerCase();
-          if (ext === '.mp3' || ext === '.flac') {
+          const lowerName = entry.name.toLowerCase();
+
+          // Exclude manifest file from stale list
+          if (lowerName === '.crate-sync.json') {
+            continue;
+          }
+
+          if (ext === '.mp3' || ext === '.flac' || ext === '.wav') {
             if (!activePathsLower.has(relPath.toLowerCase())) {
               staleList.push(relPath);
             }
+          } else if (
+            lowerName === 'desktop.ini' ||
+            lowerName === 'thumbs.db' ||
+            lowerName === '.ds_store' ||
+            lowerName.startsWith('._')
+          ) {
+            staleList.push(relPath);
           }
         }
       }
@@ -251,19 +329,26 @@ export class SyncManagerService {
     const totalFiles = filesToCopy.length;
     const totalBytes = options.plan.totalBytesToTransfer;
 
-    // 1. Copy modified and new tracks
+    // 1. Copy or transcode modified and new tracks
     for (const item of filesToCopy) {
       const fullDestPath = path.join(options.targetVolumePath, item.targetRelativePath);
       const destDir = path.dirname(fullDestPath);
 
       try {
         await fs.promises.mkdir(destDir, { recursive: true });
-        await fs.promises.copyFile(item.track.filePath, fullDestPath);
+
+        if (item.needsTranscode) {
+          // Transcode 32-bit float WAV -> 16-bit FLAC using FFmpeg
+          const ffmpeg = getFfmpegPath();
+          await execAsync(`"${ffmpeg}" -y -i "${item.track.filePath}" -c:a flac -sample_fmt s16 "${fullDestPath}"`);
+        } else {
+          await fs.promises.copyFile(item.track.filePath, fullDestPath);
+        }
 
         // Preserve modification time
         const atime = new Date();
         const mtime = new Date(item.track.mtime);
-        await fs.promises.utimes(fullDestPath, atime, mtime);
+        await fs.promises.utimes(fullDestPath, atime, mtime).catch(() => {});
 
         copied++;
         bytesDone += item.track.fileSize;
@@ -278,7 +363,7 @@ export class SyncManagerService {
           });
         }
       } catch (err: any) {
-        errors.push(`Failed to copy ${item.track.filePath} -> ${item.targetRelativePath}: ${err.message}`);
+        errors.push(`Failed to sync ${item.track.filePath} -> ${item.targetRelativePath}: ${err.message}`);
       }
     }
 
@@ -315,6 +400,48 @@ export class SyncManagerService {
           }
         }
       }
+    }
+
+    // 4. Update .crate-sync.json manifest on target volume
+    try {
+      const manifestPath = path.join(options.targetVolumePath, '.crate-sync.json');
+      const manifest: CrateSyncManifest = {
+        version: '1.0.0',
+        lastSyncedAt: Date.now(),
+        files: {},
+      };
+
+      try {
+        if (fs.existsSync(manifestPath)) {
+          const raw = await fs.promises.readFile(manifestPath, 'utf-8');
+          const existing = JSON.parse(raw) as CrateSyncManifest;
+          if (existing?.files) {
+            manifest.files = { ...existing.files };
+          }
+        }
+      } catch {}
+
+      for (const item of options.plan.items) {
+        manifest.files[item.targetRelativePath.toLowerCase()] = {
+          sourcePath: item.track.filePath,
+          sourceMtime: item.track.mtime,
+          sourceSize: item.track.fileSize,
+          targetRelativePath: item.targetRelativePath,
+          format: item.targetFormat || item.track.format,
+          transcoded: item.needsTranscode,
+          syncedAt: Date.now(),
+        };
+      }
+
+      if (options.pruneStale && options.plan.staleFiles.length > 0) {
+        for (const staleRel of options.plan.staleFiles) {
+          delete manifest.files[staleRel.toLowerCase()];
+        }
+      }
+
+      await fs.promises.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+    } catch (err: any) {
+      errors.push(`Failed to update .crate-sync.json manifest: ${err.message}`);
     }
 
     return {

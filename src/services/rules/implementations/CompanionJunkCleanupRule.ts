@@ -5,7 +5,7 @@ import { Rule, RuleViolation, RuleContext } from '../types';
  * Non-audio junk file extensions and names often left behind by torrents or mixtape downloaders.
  */
 const JUNK_EXTENSIONS = new Set(['.url', '.txt', '.nfo']);
-const JUNK_FILENAMES = new Set(['.ds_store', 'thumbs.db']);
+const JUNK_FILENAMES = new Set(['.ds_store', 'thumbs.db', 'desktop.ini']);
 
 /**
  * Extensions and filenames that must NEVER be deleted.
