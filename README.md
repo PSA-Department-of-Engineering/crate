@@ -17,8 +17,9 @@ The desktop app runs locally via Node and Electron:
 
 ``bash
 npm install
-npm run dev             # starts Vite dev server
-npm start               # launches Electron desktop app
+npm run dev             # starts Electron desktop app with Vite hot module reload (HMR)
+npm start               # launches standalone compiled Electron desktop app
+npm run dev:web         # starts standalone Vite dev server for web portal
 ``
 
 ## Test

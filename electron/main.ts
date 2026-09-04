@@ -37,6 +37,20 @@ export function getAppIcon(): string | undefined {
   return undefined;
 }
 
+export function getDistIndexPath(): string {
+  const possiblePaths = [
+    path.join(__dirname, '../../dist/index.html'),
+    path.join(__dirname, '../dist/index.html'),
+    path.join(app.getAppPath(), 'dist/index.html'),
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      return p;
+    }
+  }
+  return path.join(app.getAppPath(), 'dist/index.html');
+}
+
 function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -56,10 +70,48 @@ function createMainWindow() {
     },
   });
 
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show();
+    mainWindow?.focus();
+  });
+
+  const appLogPath = path.join(app.getPath('userData'), 'app.log');
+  mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    try {
+      fs.appendFileSync(appLogPath, `[Console ${level}] ${message} (${sourceId}:${line})\n`);
+    } catch {}
+  });
+
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    try {
+      fs.appendFileSync(appLogPath, `[Load Failed] ${errorCode} ${errorDescription} (${validatedURL})\n`);
+    } catch {}
+    if (process.env.VITE_DEV_SERVER_URL && validatedURL.startsWith(process.env.VITE_DEV_SERVER_URL)) {
+      console.warn(`Dev server at ${validatedURL} unreachable (${errorDescription}). Loading local dist/index.html...`);
+      mainWindow?.loadFile(getDistIndexPath());
+    }
+  });
+
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F12' || (input.control && input.shift && input.key.toLowerCase() === 'i')) {
+      if (mainWindow?.webContents.isDevToolsOpened()) {
+        mainWindow.webContents.closeDevTools();
+      } else {
+        mainWindow?.webContents.openDevTools({ mode: 'detach' });
+      }
+      event.preventDefault();
+    } else if (input.control && input.key.toLowerCase() === 'r') {
+      mainWindow?.webContents.reload();
+      event.preventDefault();
+    }
+  });
+
   if (process.env.VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
+    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL).catch(() => {
+      mainWindow?.loadFile(getDistIndexPath());
+    });
   } else {
-    mainWindow.loadFile(path.join(app.getAppPath(), 'dist/index.html'));
+    mainWindow.loadFile(getDistIndexPath());
   }
 
   mainWindow.on('closed', () => {
@@ -96,7 +148,7 @@ function createPlayerWindow() {
 
   const url = process.env.VITE_DEV_SERVER_URL
     ? `${process.env.VITE_DEV_SERVER_URL}#undocked-player`
-    : `file://${path.join(__dirname, '../dist/index.html')}#undocked-player`;
+    : `file://${getDistIndexPath()}#undocked-player`;
 
   playerWindow.loadURL(url);
 
