@@ -301,6 +301,20 @@ export const SyncDialog: React.FC<SyncDialogProps> = ({
                 </div>
               </div>
 
+              {/* Transcode Notice — only counts tracks actually being written this run */}
+              {syncPlan.items.some(i => i.needsTranscode && i.action !== 'keep') && (
+                <div className="p-3 bg-sky-500/10 border border-sky-500/20 rounded-lg flex items-center gap-2 text-xs text-sky-800 dark:text-sky-300">
+                  <FileMusic className="w-4 h-4 text-sky-600 shrink-0" />
+                  <span>
+                    <strong>
+                      {syncPlan.items.filter(i => i.needsTranscode && i.action !== 'keep').length}
+                    </strong>{' '}
+                    high-bit-depth WAV {syncPlan.items.filter(i => i.needsTranscode && i.action !== 'keep').length === 1 ? 'track' : 'tracks'}{' '}
+                    will be converted to 16-bit FLAC so the car can play them. Your WAV masters stay on this PC untouched.
+                  </span>
+                </div>
+              )}
+
               {/* Stale Files Alert */}
               {syncPlan.staleFiles.length > 0 && (
                 <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg flex items-center justify-between text-xs">
@@ -344,6 +358,14 @@ export const SyncDialog: React.FC<SyncDialogProps> = ({
                         </td>
                         <td className="px-3 py-1.5 text-foreground truncate max-w-sm">
                           {item.targetRelativePath}
+                          {item.needsTranscode && (
+                            <span
+                              className="ml-1.5 px-1 py-0.5 rounded text-[9px] uppercase font-bold bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300"
+                              title="Converted to 16-bit FLAC on the drive; the WAV master stays on this PC"
+                            >
+                              →flac
+                            </span>
+                          )}
                         </td>
                         <td className="px-3 py-1.5 text-right text-muted-foreground">
                           {formatBytes(item.sourceSize)}

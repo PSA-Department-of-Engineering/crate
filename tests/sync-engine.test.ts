@@ -3,7 +3,9 @@ import { intent } from './intent-helper';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { SyncManagerService } from '../electron/services/sync-manager';
+import { promisify } from 'util';
+import { execFile } from 'child_process';
+import { SyncManagerService, getFfmpegPath } from '../electron/services/sync-manager';
 import { Track, Playlist } from '../src/models/types';
 
 describe('Car Sync Engine & Delta Synchronization', () => {
@@ -274,5 +276,150 @@ describe('Car Sync Engine & Delta Synchronization', () => {
       await fs.promises.rm(tempDestDir, { recursive: true, force: true });
     });
   });
-});
+  describe('Car-incompatible WAV transcoding on sync', () => {
+    const execFileAsync = promisify(execFile);
 
+    /** Writes a real 32-bit float WAV, as a DAW export would produce. */
+    async function writeFloatWav(dest: string) {
+      await execFileAsync(getFfmpegPath(), [
+        '-y', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=2',
+        '-c:a', 'pcm_f32le', '-metadata', 'title=Night Drive',
+        '-metadata', 'artist=Producer', '-metadata', 'album=Masters', dest,
+      ]);
+    }
+
+    async function makeFixture() {
+      const srcDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-wav-src-'));
+      const destDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-wav-dst-'));
+      const wavPath = path.join(srcDir, 'Night Drive.wav');
+      await writeFloatWav(wavPath);
+      const stat = await fs.promises.stat(wavPath);
+
+      const track: Track = {
+        id: wavPath,
+        filePath: wavPath,
+        title: 'Night Drive',
+        artist: 'Producer',
+        album: 'Masters',
+        trackNumber: 1,
+        duration: 2,
+        format: 'wav',
+        bitsPerSample: 32,
+        fileSize: stat.size,
+        mtime: stat.mtimeMs,
+      };
+
+      return { srcDir, destDir, wavPath, track };
+    }
+
+    const cleanup = async (...dirs: string[]) => {
+      for (const d of dirs) await fs.promises.rm(d, { recursive: true, force: true });
+    };
+
+    intent('INT-SYNC-004', 'Sync converts car-incompatible WAV to FLAC on the drive and leaves the PC master untouched', async () => {
+      const { srcDir, destDir, wavPath, track } = await makeFixture();
+      const before = await fs.promises.stat(wavPath);
+
+      const plan = await syncManager.analyzeSync({
+        sourceTracks: [track], targetVolumePath: destDir, scope: 'all',
+      });
+
+      expect(plan.items[0].needsTranscode).toBe(true);
+      expect(plan.items[0].targetFormat).toBe('flac');
+      expect(plan.items[0].targetRelativePath).toMatch(/\.flac$/i);
+
+      await syncManager.executeSync({ plan, targetVolumePath: destDir, pruneStale: false });
+
+      // The converted file is on the drive...
+      const destFile = path.join(destDir, plan.items[0].targetRelativePath);
+      expect(fs.existsSync(destFile)).toBe(true);
+
+      // ...and the master is still on the PC, byte for byte.
+      const after = await fs.promises.stat(wavPath);
+      expect(fs.existsSync(wavPath)).toBe(true);
+      expect(after.size).toBe(before.size);
+      expect(after.mtimeMs).toBe(before.mtimeMs);
+
+      // No WAV was written to the drive.
+      const destNames = await fs.promises.readdir(destDir, { recursive: true } as any);
+      expect((destNames as string[]).some(n => String(n).toLowerCase().endsWith('.wav'))).toBe(false);
+
+      await cleanup(srcDir, destDir);
+    });
+
+    intent('INT-SYNC-004', 'A second sync keeps an already-converted track instead of re-encoding it', async () => {
+      const { srcDir, destDir, track } = await makeFixture();
+
+      const plan1 = await syncManager.analyzeSync({
+        sourceTracks: [track], targetVolumePath: destDir, scope: 'all',
+      });
+      await syncManager.executeSync({ plan: plan1, targetVolumePath: destDir, pruneStale: false });
+
+      const destFile = path.join(destDir, plan1.items[0].targetRelativePath);
+      const encodedAt = (await fs.promises.stat(destFile)).mtimeMs;
+
+      const plan2 = await syncManager.analyzeSync({
+        sourceTracks: [track], targetVolumePath: destDir, scope: 'all',
+      });
+
+      expect(plan2.items[0].action).toBe('keep');
+      expect(plan2.totalFilesToTransfer).toBe(0);
+
+      // Nothing re-encoded it.
+      await syncManager.executeSync({ plan: plan2, targetVolumePath: destDir, pruneStale: false });
+      expect((await fs.promises.stat(destFile)).mtimeMs).toBe(encodedAt);
+
+      await cleanup(srcDir, destDir);
+    });
+
+    // Regression: the manifest-miss fallback could not size-compare a transcoded
+    // file, so it fell through to 'update' and re-encoded every WAV on the drive.
+    intent('INT-SYNC-004', 'A lost manifest does not trigger a full re-encode of already-converted tracks', async () => {
+      const { srcDir, destDir, track } = await makeFixture();
+
+      const plan1 = await syncManager.analyzeSync({
+        sourceTracks: [track], targetVolumePath: destDir, scope: 'all',
+      });
+      await syncManager.executeSync({ plan: plan1, targetVolumePath: destDir, pruneStale: false });
+
+      await fs.promises.rm(path.join(destDir, '.crate-sync.json'), { force: true });
+
+      const plan2 = await syncManager.analyzeSync({
+        sourceTracks: [track], targetVolumePath: destDir, scope: 'all',
+      });
+
+      expect(plan2.items[0].action).toBe('keep');
+      expect(plan2.totalFilesToTransfer).toBe(0);
+
+      await cleanup(srcDir, destDir);
+    });
+
+    intent('INT-SYNC-004', 'An edited WAV master is re-converted on the next sync', async () => {
+      const { srcDir, destDir, wavPath, track } = await makeFixture();
+
+      const plan1 = await syncManager.analyzeSync({
+        sourceTracks: [track], targetVolumePath: destDir, scope: 'all',
+      });
+      await syncManager.executeSync({ plan: plan1, targetVolumePath: destDir, pruneStale: false });
+
+      // Re-export the master, as re-bouncing a mix would. The mtime is pushed
+      // explicitly rather than relying on wall clock: a real re-bounce lands
+      // well outside the 2s FAT32 tolerance, but the test writes both files in
+      // the same tick.
+      await writeFloatWav(wavPath);
+      const bumped = new Date(Date.now() + 60_000);
+      await fs.promises.utimes(wavPath, bumped, bumped);
+      const restat = await fs.promises.stat(wavPath);
+      const editedTrack: Track = { ...track, mtime: restat.mtimeMs, fileSize: restat.size };
+
+      const plan2 = await syncManager.analyzeSync({
+        sourceTracks: [editedTrack], targetVolumePath: destDir, scope: 'all',
+      });
+
+      expect(plan2.items[0].action).toBe('update');
+      expect(plan2.items[0].needsTranscode).toBe(true);
+
+      await cleanup(srcDir, destDir);
+    });
+  });
+});

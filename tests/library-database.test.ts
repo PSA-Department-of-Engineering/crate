@@ -7,6 +7,18 @@ import { LibraryScannerService } from '../electron/services/library-scanner';
 import { Track } from '../src/models/types';
 
 describe('Embedded SQLite Library Database & Incremental Sync', () => {
+  const wavTrackForCloseTest: Track = {
+    id: 'close-test',
+    filePath: 'C:/Music/close-test.wav',
+    title: 'Close Test',
+    artist: 'Producer',
+    album: 'Masters',
+    duration: 1,
+    format: 'wav',
+    fileSize: 1,
+    mtime: 1,
+  };
+
   it('Initializes SQLite database with WAL mode and tables', async () => {
     const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-sqlite-test-'));
     const dbPath = path.join(tempDir, 'test-library.db');
@@ -231,5 +243,78 @@ describe('Embedded SQLite Library Database & Incremental Sync', () => {
     expect(retrieved?.format).toBe('wav');
     expect(retrieved?.bitsPerSample).toBe(32);
     expect(retrieved?.codec).toBe('IEEE_FLOAT');
+  });
+  // The sync manifest (.crate-sync.json) identifies an already-synced track by
+  // strict equality on mtime and file size. fs mtimeMs is fractional, so any
+  // narrowing in storage would break that match silently: every sync would fall
+  // through to filesystem comparison — still correct, but slower, and for
+  // transcoded WAVs that fallback is the weaker mtime-only check. No error is
+  // raised when it degrades, so it is pinned here instead.
+  describe('Sync manifest identity survives the database round-trip', () => {
+    const FRACTIONAL_MTIME = 1788901500837.0647;
+    const FILE_SIZE = 352968;
+
+    const wavTrack: Track = {
+      id: 'C:/Music/Producer/Night Drive.wav',
+      filePath: 'C:/Music/Producer/Night Drive.wav',
+      title: 'Night Drive',
+      artist: 'Producer',
+      album: 'Masters',
+      duration: 2,
+      format: 'wav',
+      bitsPerSample: 32,
+      fileSize: FILE_SIZE,
+      mtime: FRACTIONAL_MTIME,
+    };
+
+    it('preserves fractional mtime and size exactly, including across a restart', async () => {
+      const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-mtime-'));
+      const target = path.join(dir, 'library.db');
+
+      const db = new LibraryDatabaseService(target);
+      db.upsertTrack(wavTrack);
+
+      const direct = db.getAllTracks().find(t => t.filePath === wavTrack.filePath)!;
+      const viaMap = db.getTracksMtimeMap().get(wavTrack.filePath)!;
+      expect(db.isSqliteActive()).toBe(true);
+      expect(direct.mtime).toBe(FRACTIONAL_MTIME);
+      expect(direct.fileSize).toBe(FILE_SIZE);
+      expect(viaMap.mtime).toBe(FRACTIONAL_MTIME);
+      db.close();
+
+      const reopened = new LibraryDatabaseService(target);
+      const afterRestart = reopened.getAllTracks().find(t => t.filePath === wavTrack.filePath);
+      expect(afterRestart?.mtime).toBe(FRACTIONAL_MTIME);
+      expect(afterRestart?.fileSize).toBe(FILE_SIZE);
+      reopened.close();
+
+      await fs.promises.rm(dir, { recursive: true, force: true });
+    });
+  });
+
+  // Crate previously fell back to an in-memory Map when node:sqlite was absent,
+  // so the shipped app (Electron 33 / Node 20) silently ran a different storage
+  // implementation than every test exercised. There is now one engine, and an
+  // unopenable database must fail loudly rather than degrade into a second one.
+  describe('Single storage engine', () => {
+    it('throws with an actionable message when the database cannot be opened', async () => {
+      const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-badpath-'));
+      // A directory is not a database file; SQLite cannot open it.
+      const notADb = path.join(dir, 'not-a-db');
+      await fs.promises.mkdir(notADb);
+
+      expect(() => new LibraryDatabaseService(notADb)).toThrow(/Failed to open the library database/);
+
+      await fs.promises.rm(dir, { recursive: true, force: true });
+    });
+
+    it('throws rather than returning empty results after close', async () => {
+      const db = new LibraryDatabaseService(':memory:');
+      db.upsertTrack(wavTrackForCloseTest);
+      expect(db.getAllTracks().length).toBe(1);
+
+      db.close();
+      expect(() => db.getAllTracks()).toThrow(/not open/);
+    });
   });
 });

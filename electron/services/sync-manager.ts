@@ -1,12 +1,37 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import { promisify } from 'util';
 import { Track, Playlist, VolumeInfo, SyncPlan, SyncPlanItem, SyncProgress, AudioFormat } from '../../src/models/types';
 import { getCarRelativePath } from './file-organizer';
+import { isCarIncompatibleWav } from '../../src/utils/audio-compat';
 import { PlaylistExporterService } from './playlist-exporter';
 
 const execAsync = promisify(exec);
+// execFile for ffmpeg: args go as an array rather than through cmd.exe, so a
+// '%' or '&' in a track filename cannot reach the shell. The PowerShell volume
+// query above still needs the shell form.
+const execFileAsync = promisify(execFile);
+
+/**
+ * FFmpeg arguments converting a car-incompatible WAV to 16-bit FLAC.
+ *
+ * Writes to the destination only — the WAV master on the PC is never modified.
+ * Reducing 32-bit float to 16-bit is a depth reduction, so it is dithered;
+ * truncating instead leaves quantisation distortion in quiet passages.
+ */
+export function buildWavToFlacArgs(sourcePath: string, destPath: string): string[] {
+  return [
+    '-y',
+    '-i', sourcePath,
+    '-map', '0:a',
+    '-map_metadata', '0',
+    '-af', 'aresample=osf=s16:dither_method=triangular',
+    '-c:a', 'flac',
+    '-f', 'flac',
+    destPath,
+  ];
+}
 
 export interface CrateSyncManifestEntry {
   sourcePath: string;
@@ -174,12 +199,12 @@ export class SyncManagerService {
     let totalFilesToTransfer = 0;
 
     for (const track of targetTracks) {
-      // Check if file is an unplayable 32-bit float WAV requiring on-the-fly transcoding to 16-bit FLAC
-      const is32BitFloatWav =
-        track.format === 'wav' &&
-        (track.codec === 'IEEE_FLOAT' || track.bitsPerSample === 32);
+      // Car head units cannot decode high-bit-depth WAV, so those are converted
+      // to 16-bit FLAC on the way to the drive. The library master is never
+      // touched: the conversion output goes to the destination path only.
+      const needsTranscode = isCarIncompatibleWav(track);
 
-      const targetFormat: AudioFormat = is32BitFloatWav ? 'flac' : track.format;
+      const targetFormat: AudioFormat = needsTranscode ? 'flac' : track.format;
       const targetRel = getCarRelativePath(track, { multiDiscSubfolder: true, targetFormat });
       activeTargetPaths.add(targetRel.toLowerCase());
 
@@ -212,10 +237,12 @@ export class SyncManagerService {
           destSize = destStat.size;
           destMtime = destStat.mtimeMs;
 
-          if (!is32BitFloatWav) {
-            // Compare file size and mtime (allow 2s tolerance for FAT32 2-second timestamp resolution)
+          // Allow 2s tolerance throughout for FAT32's 2-second timestamp resolution.
+          const timeDiff = Math.abs(track.mtime - destStat.mtimeMs);
+
+          if (!needsTranscode) {
+            // Compare file size and mtime
             const sizeDiff = Math.abs(track.fileSize - destStat.size);
-            const timeDiff = Math.abs(track.mtime - destStat.mtimeMs);
 
             if (sizeDiff === 0 && timeDiff <= 2000) {
               action = 'keep';
@@ -223,7 +250,14 @@ export class SyncManagerService {
               action = 'update';
             }
           } else {
-            action = 'update';
+            // A transcoded file is a different encoding of its source, so its
+            // size will never match the WAV's and size comparison says nothing.
+            // mtime carries the identity instead: executeSync stamps every
+            // destination with its source's mtime, transcoded ones included. So
+            // an unchanged WAV whose FLAC is already on the drive is kept even
+            // when the manifest is missing — which is the case that used to
+            // re-encode the entire WAV collection on every sync.
+            action = timeDiff <= 2000 ? 'keep' : 'update';
           }
         } catch {
           // File does not exist
@@ -244,7 +278,7 @@ export class SyncManagerService {
         sourceMtime: track.mtime,
         destSize,
         destMtime,
-        needsTranscode: is32BitFloatWav,
+        needsTranscode,
         targetFormat,
       });
     }
@@ -338,9 +372,9 @@ export class SyncManagerService {
         await fs.promises.mkdir(destDir, { recursive: true });
 
         if (item.needsTranscode) {
-          // Transcode 32-bit float WAV -> 16-bit FLAC using FFmpeg
+          // Transcode car-incompatible WAV -> 16-bit FLAC using FFmpeg
           const ffmpeg = getFfmpegPath();
-          await execAsync(`"${ffmpeg}" -y -i "${item.track.filePath}" -c:a flac -sample_fmt s16 "${fullDestPath}"`);
+          await execFileAsync(ffmpeg, buildWavToFlacArgs(item.track.filePath, fullDestPath));
         } else {
           await fs.promises.copyFile(item.track.filePath, fullDestPath);
         }

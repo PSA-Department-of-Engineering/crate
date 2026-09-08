@@ -1,4 +1,5 @@
-import { Track } from '../models/types';
+import type React from 'react';
+import type { Track } from '../models/types';
 
 export const CRATE_DRAG_MIME = 'application/x-crate-drag';
 

@@ -7,6 +7,7 @@ import { LibraryDatabaseService } from './services/library-database';
 import { SyncManagerService } from './services/sync-manager';
 import { PlaylistExporterService } from './services/playlist-exporter';
 import { SettingsManagerService } from './services/settings-manager';
+
 import { TagUpdates, Track, Playlist, SyncPlan } from '../src/models/types';
 
 let mainWindow: BrowserWindow | null = null;
@@ -76,9 +77,12 @@ function createMainWindow() {
   });
 
   const appLogPath = path.join(app.getPath('userData'), 'app.log');
-  mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+  // Electron 35 replaced the positional (event, level, message, line, sourceId)
+  // arguments with a single details object, and `level` became a string
+  // ('info' | 'warning' | 'error' | 'debug') instead of a numeric code.
+  mainWindow.webContents.on('console-message', ({ level, message, lineNumber, sourceId }) => {
     try {
-      fs.appendFileSync(appLogPath, `[Console ${level}] ${message} (${sourceId}:${line})\n`);
+      fs.appendFileSync(appLogPath, `[Console ${level}] ${message} (${sourceId}:${lineNumber})\n`);
     } catch {}
   });
 
@@ -107,6 +111,7 @@ function createMainWindow() {
   });
 
   if (process.env.VITE_DEV_SERVER_URL) {
+    mainWindow.webContents.session.clearCache();
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL).catch(() => {
       mainWindow?.loadFile(getDistIndexPath());
     });

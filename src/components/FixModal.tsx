@@ -24,6 +24,7 @@ export const FixModal: React.FC<FixModalProps> = ({
   const [progress, setProgress] = useState<BatchProgress | null>(null);
   const [fixDone, setFixDone] = useState<boolean>(false);
   const [fixedCount, setFixedCount] = useState<number>(0);
+  const [fixErrors, setFixErrors] = useState<Array<{ violationId: string; error: string }>>([]);
 
   const presets = useMemo(() => defaultRuleRegistry.getAllPresets(), []);
 
@@ -42,6 +43,7 @@ export const FixModal: React.FC<FixModalProps> = ({
       setProgress(null);
       setFixDone(false);
       setFixedCount(0);
+      setFixErrors([]);
     }
   }, [isOpen]);
 
@@ -67,6 +69,7 @@ export const FixModal: React.FC<FixModalProps> = ({
       );
 
       setFixedCount(result.appliedCount);
+      setFixErrors(result.errors);
       setFixDone(true);
       if (onRescanLibrary) {
         await onRescanLibrary();
@@ -264,17 +267,50 @@ export const FixModal: React.FC<FixModalProps> = ({
           )}
 
           {!isFixing && fixDone && (
-            <div className="flex items-center justify-between text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Successfully fixed {fixedCount} items! All rules satisfied.</span>
-              </div>
-              <button
-                onClick={onClose}
-                className="px-3 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-md transition-colors"
+            <div className="space-y-2">
+              <div
+                className={`flex items-center justify-between text-xs font-semibold ${
+                  fixErrors.length > 0
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-emerald-600 dark:text-emerald-400'
+                }`}
               >
-                Done
-              </button>
+                <div className="flex items-center gap-2">
+                  {fixErrors.length > 0 ? (
+                    <AlertCircle className="w-4 h-4" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4" />
+                  )}
+                  <span>
+                    {fixErrors.length > 0
+                      ? `Fixed ${fixedCount}, ${fixErrors.length} failed. Nothing was changed for the failures.`
+                      : `Successfully fixed ${fixedCount} items! All rules satisfied.`}
+                  </span>
+                </div>
+                <button
+                  onClick={onClose}
+                  className={`px-3 py-1 rounded-md transition-colors ${
+                    fixErrors.length > 0
+                      ? 'bg-amber-500/10 hover:bg-amber-500/20'
+                      : 'bg-emerald-500/10 hover:bg-emerald-500/20'
+                  }`}
+                >
+                  Done
+                </button>
+              </div>
+
+              {fixErrors.length > 0 && (
+                <ul className="max-h-24 overflow-y-auto space-y-1 rounded-md bg-amber-500/5 p-2">
+                  {fixErrors.map((e) => (
+                    <li
+                      key={e.violationId}
+                      className="text-[11px] text-amber-700 dark:text-amber-300 font-mono break-all"
+                    >
+                      {e.error}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
 

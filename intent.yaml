@@ -311,6 +311,19 @@ INT-SYNC-003:
   criticality: high
   rationale: "Keeps removable car media clean of deleted or deselected tracks."
 
+INT-SYNC-004:
+  version: 1.0.0
+  status: active
+  statement: "The car sync engine converts head-unit-incompatible WAV tracks to 16-bit FLAC on the destination drive, leaves the source master untouched on the PC, and skips already-converted tracks on subsequent syncs even when the destination manifest is absent."
+  derived_from:
+    - REQ-SYNC-002
+  test:
+    scope: unit
+    component: DeltaSyncEngine
+    type: behavior
+  criticality: high
+  rationale: "Makes 32-bit float masters playable in the car without rewriting the library, and avoids re-encoding the whole collection on every sync."
+
 INT-DIST-001:
   version: 1.0.0
   status: active

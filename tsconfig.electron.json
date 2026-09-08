@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["electron/**/*", "src/models/types.ts"]
+  "include": ["electron/**/*", "src/models/types.ts", "src/utils/audio-compat.ts"]
 }
