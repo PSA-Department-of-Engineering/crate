@@ -8,6 +8,7 @@ import { LibraryTable } from './LibraryTable';
 export type LibraryViewMode = 'mosaic' | 'list';
 
 interface LibraryViewProps {
+  isActive?: boolean;
   tracks: Track[];
   selectedTrackIds: string[];
   currentPlayingTrackId?: string;
@@ -37,6 +38,7 @@ interface LibraryViewProps {
 }
 
 export const LibraryView: React.FC<LibraryViewProps> = ({
+  isActive = true,
   tracks,
   selectedTrackIds,
   currentPlayingTrackId,
@@ -79,7 +81,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden bg-card border border-border rounded-xl shadow-sm m-4">
+    <div className={`${isActive ? 'flex' : 'hidden'} flex-col flex-1 overflow-hidden bg-card border border-border rounded-xl shadow-sm m-4`}>
       {/* Main Content Area with Unified Single Header Bar */}
       <div className="flex-1 flex overflow-hidden">
         {viewMode === 'mosaic' ? (

@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Layers,
   FileMusic,
+  ArrowLeft,
 } from 'lucide-react';
 import { Track, TagUpdates } from '../models/types';
 import { hasDragData, getDragData } from '../utils/drag-utils';
@@ -18,6 +19,7 @@ interface TagEditorProps {
   onSaveSingle: (filePath: string, tags: TagUpdates) => Promise<any>;
   onSaveBatch: (filePaths: string[], tags: TagUpdates) => Promise<any>;
   onDropTracks?: (tracks: Track[]) => void;
+  onBackToLibrary?: () => void;
 }
 
 export const TagEditor: React.FC<TagEditorProps> = ({
@@ -25,6 +27,7 @@ export const TagEditor: React.FC<TagEditorProps> = ({
   onSaveSingle,
   onSaveBatch,
   onDropTracks,
+  onBackToLibrary,
 }) => {
   const isBatch = selectedTracks.length > 1;
   const singleTrack = selectedTracks.length === 1 ? selectedTracks[0] : null;
@@ -228,6 +231,18 @@ export const TagEditor: React.FC<TagEditorProps> = ({
     }
   };
 
+  const backToLibraryButton = onBackToLibrary && (
+    <button
+      type="button"
+      onClick={onBackToLibrary}
+      disabled={isSaving}
+      className="inline-flex items-center gap-2 self-start mb-4 px-3 py-2 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+      Back to Library
+    </button>
+  );
+
   if (selectedTracks.length === 0) {
     return (
       <div
@@ -240,6 +255,7 @@ export const TagEditor: React.FC<TagEditorProps> = ({
             : 'border-border text-muted-foreground'
         }`}
       >
+        {backToLibraryButton}
         <div className={`p-4 rounded-2xl mb-3 transition-colors ${isDragOver ? 'bg-primary/20 text-primary animate-bounce' : 'bg-secondary text-primary/60'}`}>
           <Tag className="w-10 h-10" />
         </div>
@@ -265,6 +281,7 @@ export const TagEditor: React.FC<TagEditorProps> = ({
       }`}
     >
       {/* Header */}
+      {backToLibraryButton}
       <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
         <div className="flex items-center gap-3">
           {isBatch ? (
