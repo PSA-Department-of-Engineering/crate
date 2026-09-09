@@ -36,6 +36,7 @@ describe('Distribution Contract & Visual Theme Tokens', () => {
 
     expect(indexCss).toContain('--primary: 160 84% 39%');
     expect(indexCss).toContain('--background: 40 33% 97%');
+    expect(indexCss).toContain('--popover: 40 30% 98%');
     expect(indexCss).toContain('--radius: 0.75rem');
     expect(indexCss).toContain("'Nunito'");
   });
@@ -100,17 +101,24 @@ describe('Distribution Contract & Visual Theme Tokens', () => {
     expect(headerSource).toContain('title="Library & App Settings"');
   });
 
-  it('MiniPlayer and FullPlayer render interactive speaker button with liquid glass audio sink menu', async () => {
+  it('audio sink menus use the active theme surface instead of hard-coded glass styling', async () => {
+    const indexCss = await fs.promises.readFile(path.join(process.cwd(), 'src/index.css'), 'utf-8');
     const miniPlayerSource = await fs.promises.readFile(path.join(process.cwd(), 'src/components/MiniPlayer.tsx'), 'utf-8');
     expect(miniPlayerSource).toContain('isSinkMenuOpen');
-    expect(miniPlayerSource).toContain('bg-popover/95 backdrop-blur-md');
+    expect(miniPlayerSource).toContain('theme-popover');
+    expect(miniPlayerSource).toContain('bg-popover');
     expect(miniPlayerSource).toContain('Audio Output Devices');
+    expect(miniPlayerSource).not.toContain('backdrop-blur-md');
     expect(miniPlayerSource).not.toContain('<select');
 
     const fullPlayerSource = await fs.promises.readFile(path.join(process.cwd(), 'src/components/FullPlayer.tsx'), 'utf-8');
     expect(fullPlayerSource).toContain('isSinkMenuOpen');
-    expect(fullPlayerSource).toContain('bg-popover/95 backdrop-blur-md');
+    expect(fullPlayerSource).toContain('theme-popover');
+    expect(fullPlayerSource).toContain('bg-popover');
     expect(fullPlayerSource).not.toContain('<select');
+
+    expect(indexCss).toContain("background-color: hsl(var(--popover));");
+    expect(indexCss).toContain(":root[data-theme='glass'] .theme-popover");
   });
 
   it('Library components render a unified single header bar containing breadcrumbs and view mode toggle', async () => {

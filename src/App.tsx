@@ -11,10 +11,13 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { RulesModal } from './components/RulesModal';
 import { FixModal } from './components/FixModal';
 import { SettingsModal } from './components/SettingsModal';
+import { CoverArtEditorModal, CoverArtScope } from './components/CoverArtEditorModal';
 import { useLibrary } from './hooks/useLibrary';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useSync } from './hooks/useSync';
 import { Track } from './models/types';
+import { getOrganizationRelativePath } from './utils/organization-path';
+import { applyTheme, getStoredTheme, isThemeName, THEME_STORAGE_KEY, ThemeName } from './theme';
 
 export const App: React.FC = () => {
   const isUndockedWindow = typeof window !== 'undefined' && window.location.hash === '#undocked-player';
@@ -26,10 +29,54 @@ export const App: React.FC = () => {
   const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
   const [showFixModal, setShowFixModal] = useState<boolean>(false);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
+  const [coverEditRequest, setCoverEditRequest] = useState<{
+    tracks: Track[];
+    scope: CoverArtScope;
+    targetName: string;
+    currentArtwork?: Track['picture'];
+  } | null>(null);
+  const [theme, setTheme] = useState<ThemeName>(getStoredTheme);
 
   const library = useLibrary();
   const player = useAudioPlayer();
   const sync = useSync(library.tracks, library.playlists, library.albums);
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
+  // Electron settings are the durable source of truth. localStorage gives
+  // the web build an immediate preference and prevents a theme flash.
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTheme = async () => {
+      try {
+        const settings = await window.crateBridge?.getSettings?.();
+        if (isMounted && settings && isThemeName(settings.theme)) {
+          setTheme(settings.theme);
+        }
+      } catch (err) {
+        console.error('Failed to load theme:', err);
+      }
+    };
+
+    void loadTheme();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleThemeChange = (nextTheme: ThemeName) => {
+    setTheme(nextTheme);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    } catch {
+      // The Electron settings store below is still available when localStorage
+      // is disabled by the host environment.
+    }
+    void window.crateBridge?.saveSettings?.({ theme: nextTheme });
+  };
 
   // Keyboard Shortcuts (Space play/pause, Arrow Left/Right seek, Arrow Up/Down volume)
   useEffect(() => {
@@ -78,6 +125,24 @@ export const App: React.FC = () => {
     setActiveTab('tageditor');
   };
 
+  const handleChangeCover = (
+    tracksToEdit: Track[],
+    scope: CoverArtScope,
+    targetName: string,
+    currentArtwork?: Track['picture']
+  ) => {
+    if (tracksToEdit.length === 0) return;
+    setCoverEditRequest({ tracks: tracksToEdit, scope, targetName, currentArtwork });
+  };
+
+  const handleSaveCover = async (artwork: Track['picture']) => {
+    if (!coverEditRequest || !artwork) return;
+    await library.batchUpdateTags(
+      coverEditRequest.tracks.map((track) => track.filePath),
+      { picture: artwork }
+    );
+  };
+
   const handleAddToSync = (scope: 'all' | 'playlists' | 'albums', names?: string[]) => {
     if (names && names.length > 0) {
       names.forEach(name => {
@@ -110,11 +175,11 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleRescanLibrary = () => {
+  const handleRescanLibrary = async () => {
     if (library.libraryPath) {
-      library.scanFolder(library.libraryPath);
+      await library.scanFolder(library.libraryPath);
     } else {
-      library.chooseAndScanFolder();
+      await library.chooseAndScanFolder();
     }
   };
 
@@ -163,6 +228,7 @@ export const App: React.FC = () => {
             onPlayNext={player.playNext}
             onAddToQueue={player.addToQueue}
             onEditTags={handleEditTags}
+            onChangeCover={handleChangeCover}
             onAddToSync={handleAddToSync}
             onRevealInExplorer={handleRevealInExplorer}
             onCopyPath={handleCopyPath}
@@ -259,20 +325,62 @@ export const App: React.FC = () => {
         isOpen={showFixModal}
         onClose={() => setShowFixModal(false)}
         tracks={library.tracks}
-        onRescanLibrary={async () => {
-          handleRescanLibrary();
-        }}
+        libraryRoot={library.libraryPath}
+        onRescanLibrary={handleRescanLibrary}
         onApplyViolation={async (violation, track) => {
+          let currentTrack = track;
+
           if (violation.proposedTagUpdates) {
-            await library.updateTrackTags(track.filePath, violation.proposedTagUpdates);
+            const updatedTrack = await library.updateTrackTags(track.filePath, violation.proposedTagUpdates);
+            if (updatedTrack) {
+              currentTrack = updatedTrack;
+            }
           }
+
+          if (violation.proposedRenamePath) {
+            if (!library.libraryPath || !window.crateBridge?.moveTrackFile) {
+              throw new Error('File organization is only available in the Electron app with a selected library.');
+            }
+
+            // Recompute this rule's destination from the current track so a
+            // preceding metadata fix for the same track cannot leave a stale
+            // title or artist in the move target.
+            let destinationPath = violation.proposedRenamePath;
+            if (violation.ruleId === 'rule-organize-by-metadata') {
+              const root = library.libraryPath.replace(/[\\/]+$/, '');
+              destinationPath = root + '/' + getOrganizationRelativePath(currentTrack);
+            }
+
+            currentTrack = await window.crateBridge.moveTrackFile(
+              currentTrack.filePath,
+              destinationPath,
+              library.libraryPath
+            );
+          }
+
+          return { updatedTrack: currentTrack };
         }}
       />
+
+      {/* Artist / Album Cover Editor */}
+      {coverEditRequest && (
+        <CoverArtEditorModal
+          isOpen={true}
+          scope={coverEditRequest.scope}
+          targetName={coverEditRequest.targetName}
+          trackCount={coverEditRequest.tracks.length}
+          initialArtwork={coverEditRequest.currentArtwork}
+          onClose={() => setCoverEditRequest(null)}
+          onSave={handleSaveCover}
+        />
+      )}
 
       {/* Settings Modal */}
       <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
+        theme={theme}
+        onThemeChange={handleThemeChange}
         libraryPath={library.libraryPath}
         onChangeLibraryFolder={handleOpenFolder}
         isScanning={library.isScanning}

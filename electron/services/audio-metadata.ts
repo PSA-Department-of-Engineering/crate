@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { createHash } from 'crypto';
 import * as mm from 'music-metadata';
 import NodeID3 from 'node-id3';
 import { Track, TagUpdates, AudioFormat, EmbeddedArtwork } from '../../src/models/types';
@@ -36,6 +37,53 @@ function frontCoverRank(pic: RawPicture): number {
 /** Sibling image filenames, lower-cased, checked in this order for the sidecar fallback. */
 const SIDECAR_ART_BASENAMES = ['cover', 'folder', 'albumart', 'front', 'album'];
 const SIDECAR_ART_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'];
+const MAX_ARTWORK_CACHE_BYTES = 32 * 1024 * 1024;
+const MAX_ARTWORK_CACHE_ENTRIES = 512;
+const MAX_PERSISTENT_ARTWORK_BYTES = 64 * 1024 * 1024;
+
+interface PersistentArtworkRecord {
+  fileName: string;
+  mime: string | null;
+  bytes: number;
+  lastAccessed: number;
+}
+
+function normalizeProducerValue(value: unknown): string | undefined {
+  if (Array.isArray(value)) {
+    const values = value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+    return values.length > 0 ? values.join(', ') : undefined;
+  }
+  if (typeof value === 'string' && value.trim().length > 0) return value.trim();
+  return undefined;
+}
+
+/**
+ * Producer is represented as a common tag by music-metadata for FLAC and
+ * ID3v2.4. NodeID3 writes ID3v2.3 TIPL frames, which music-metadata exposes in
+ * native tags rather than promoting to common.producer, so inspect both forms.
+ */
+function getProducerFromMetadata(metadata: mm.IAudioMetadata): string | undefined {
+  const commonProducer = normalizeProducerValue(metadata.common.producer);
+  if (commonProducer) return commonProducer;
+
+  for (const tag of Object.values(metadata.native ?? {}).flat()) {
+    const id = tag.id.toUpperCase();
+    if (id === 'TIPL' || id === 'IPLS') {
+      const value = tag.value;
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const producer = normalizeProducerValue((value as Record<string, unknown>).producer);
+        if (producer) return producer;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+interface PersistentArtworkIndex {
+  version: 1;
+  entries: Record<string, PersistentArtworkRecord>;
+}
 
 function toArtworkUri(bytes: Buffer, mime: string): EmbeddedArtwork {
   return { format: mime, data: `data:${mime};base64,${bytes.toString('base64')}` };
@@ -48,6 +96,31 @@ function dataUriToBuffer(data: string): Buffer {
 }
 
 export class AudioMetadataService {
+  private persistentArtworkCacheDir?: string;
+  private persistentArtworkIndex = new Map<string, PersistentArtworkRecord>();
+  private persistentIndexWrite = Promise.resolve();
+  private artworkCache = new Map<string, {
+    signature: string;
+    artwork: EmbeddedArtwork | null;
+    bytes: number;
+  }>();
+  private artworkRequests = new Map<string, Promise<EmbeddedArtwork | null>>();
+  private artworkCacheBytes = 0;
+
+  constructor(persistentArtworkCacheDir?: string) {
+    this.persistentArtworkCacheDir = persistentArtworkCacheDir;
+    this.loadPersistentArtworkIndex();
+  }
+
+  private async readProducerFromFile(filePath: string): Promise<string | undefined> {
+    try {
+      const metadata = await mm.parseFile(filePath, { duration: false, skipCovers: true });
+      return getProducerFromMetadata(metadata);
+    } catch {
+      return undefined;
+    }
+  }
+
   /**
    * Reads metadata from an audio file (.mp3 or .flac) and returns a Track object.
    */
@@ -74,6 +147,7 @@ export class AudioMetadataService {
         artist: common.artist || 'Unknown Artist',
         album: common.album || 'Unknown Album',
         albumArtist: common.albumartist,
+        producer: getProducerFromMetadata(metadata),
         trackNumber: common.track.no || undefined,
         totalTracks: common.track.of || undefined,
         discNumber: common.disk.no || undefined,
@@ -114,6 +188,42 @@ export class AudioMetadataService {
    * cover/folder/albumart image file, otherwise null.
    */
   async getArtwork(filePath: string): Promise<EmbeddedArtwork | null> {
+    const signature = await this.getArtworkSourceSignature(filePath);
+    const cacheKey = `${filePath}\u0000${signature}`;
+    const cached = this.artworkCache.get(cacheKey);
+    if (cached) {
+      // Map insertion order gives us a small LRU cache without another
+      // dependency. Artwork is deliberately capped by bytes, not entries,
+      // because embedded covers vary widely in size.
+      this.artworkCache.delete(cacheKey);
+      this.artworkCache.set(cacheKey, cached);
+      return cached.artwork;
+    }
+
+    const pending = this.artworkRequests.get(cacheKey);
+    if (pending) return pending;
+
+    const request = this.loadPersistentArtwork(cacheKey)
+      .then(async (persistent) => {
+        if (persistent.hit) {
+          this.rememberArtwork(filePath, cacheKey, signature, persistent.artwork);
+          return persistent.artwork;
+        }
+
+        const artwork = await this.loadArtwork(filePath);
+        this.rememberArtwork(filePath, cacheKey, signature, artwork);
+        void this.persistArtwork(filePath, cacheKey, artwork);
+        return artwork;
+      })
+      .finally(() => {
+        this.artworkRequests.delete(cacheKey);
+      });
+
+    this.artworkRequests.set(cacheKey, request);
+    return request;
+  }
+
+  private async loadArtwork(filePath: string): Promise<EmbeddedArtwork | null> {
     try {
       const metadata = await mm.parseFile(filePath, { duration: false, skipCovers: false });
       const embedded = this.pickValidEmbeddedPicture(metadata.common.picture);
@@ -122,6 +232,257 @@ export class AudioMetadataService {
       // Unreadable tags — still try a sidecar image below.
     }
     return this.findSidecarArtwork(filePath);
+  }
+
+  /**
+   * Changes to either the audio file or a conventional sibling cover must
+   * invalidate the in-process result. This keeps tag edits and replaced
+   * folder.jpg files visible without rescanning every track's metadata.
+   */
+  private async getArtworkSourceSignature(filePath: string): Promise<string> {
+    let audioSignature = 'audio:missing';
+    try {
+      const stats = await fs.promises.stat(filePath);
+      audioSignature = `audio:${stats.mtimeMs}:${stats.size}`;
+    } catch {
+      // The loader will return null for a missing file.
+    }
+
+    const sidecarSignatures: string[] = [];
+    try {
+      const dir = path.dirname(filePath);
+      const entries = await fs.promises.readdir(dir);
+      const byLowerName = new Map(entries.map((entry) => [entry.toLowerCase(), entry]));
+
+      for (const base of SIDECAR_ART_BASENAMES) {
+        for (const ext of SIDECAR_ART_EXTS) {
+          const actual = byLowerName.get(base + ext);
+          if (!actual) continue;
+
+          try {
+            const stats = await fs.promises.stat(path.join(dir, actual));
+            sidecarSignatures.push(`${actual}:${stats.mtimeMs}:${stats.size}`);
+          } catch {
+            // A disappearing sidecar is represented by its absence next time.
+          }
+        }
+      }
+    } catch {
+      // An unreadable directory has no usable sidecar signature.
+    }
+
+    return `${audioSignature}|${sidecarSignatures.join('|')}`;
+  }
+
+  private rememberArtwork(
+    filePath: string,
+    cacheKey: string,
+    signature: string,
+    artwork: EmbeddedArtwork | null
+  ): void {
+    // Only retain the latest source signature for a file path.
+    const filePrefix = `${filePath}\u0000`;
+    for (const [key, entry] of this.artworkCache) {
+      if (key.startsWith(filePrefix)) {
+        this.artworkCache.delete(key);
+        this.artworkCacheBytes -= entry.bytes;
+      }
+    }
+
+    const bytes = artwork?.data ? Buffer.byteLength(artwork.data, 'utf8') : 0;
+    this.artworkCache.set(cacheKey, { signature, artwork, bytes });
+    this.artworkCacheBytes += bytes;
+
+    while (
+      (this.artworkCacheBytes > MAX_ARTWORK_CACHE_BYTES ||
+        this.artworkCache.size > MAX_ARTWORK_CACHE_ENTRIES) &&
+      this.artworkCache.size > 0
+    ) {
+      const oldestKey = this.artworkCache.keys().next().value as string | undefined;
+      if (!oldestKey) break;
+      const oldest = this.artworkCache.get(oldestKey);
+      this.artworkCache.delete(oldestKey);
+      this.artworkCacheBytes -= oldest?.bytes ?? 0;
+    }
+  }
+
+  private loadPersistentArtworkIndex(): void {
+    if (!this.persistentArtworkCacheDir) return;
+
+    try {
+      const indexPath = path.join(this.persistentArtworkCacheDir, 'index.json');
+      if (!fs.existsSync(indexPath)) return;
+
+      const parsed = JSON.parse(fs.readFileSync(indexPath, 'utf8')) as Partial<PersistentArtworkIndex>;
+      if (parsed.version !== 1 || !parsed.entries) return;
+
+      for (const [key, record] of Object.entries(parsed.entries)) {
+        if (
+          record &&
+          typeof record.fileName === 'string' &&
+          (typeof record.mime === 'string' || record.mime === null) &&
+          typeof record.bytes === 'number' &&
+          typeof record.lastAccessed === 'number'
+        ) {
+          this.persistentArtworkIndex.set(key, record);
+        }
+      }
+    } catch {
+      // A corrupt cache is disposable; the source audio remains authoritative.
+      this.persistentArtworkIndex.clear();
+    }
+  }
+
+  private persistentArtworkPath(cacheKey: string): string | undefined {
+    if (!this.persistentArtworkCacheDir) return undefined;
+    const fileName = `${createHash('sha256').update(cacheKey).digest('hex')}.art`;
+    return path.join(this.persistentArtworkCacheDir, fileName);
+  }
+
+  private async loadPersistentArtwork(cacheKey: string): Promise<
+    | { hit: true; artwork: EmbeddedArtwork | null }
+    | { hit: false }
+  > {
+    if (!this.persistentArtworkCacheDir) return { hit: false };
+
+    const record = this.persistentArtworkIndex.get(cacheKey);
+    if (!record) return { hit: false };
+
+    if (record.mime === null) {
+      record.lastAccessed = Date.now();
+      this.schedulePersistentIndexWrite();
+      return { hit: true, artwork: null };
+    }
+
+    const cachedPath = this.persistentArtworkPath(cacheKey);
+    if (!cachedPath) return { hit: false };
+
+    try {
+      const bytes = await fs.promises.readFile(cachedPath);
+      record.lastAccessed = Date.now();
+      this.schedulePersistentIndexWrite();
+      return { hit: true, artwork: toArtworkUri(bytes, record.mime) };
+    } catch {
+      this.persistentArtworkIndex.delete(cacheKey);
+      this.schedulePersistentIndexWrite();
+      return { hit: false };
+    }
+  }
+
+  private async persistArtwork(
+    filePath: string,
+    cacheKey: string,
+    artwork: EmbeddedArtwork | null
+  ): Promise<void> {
+    if (!this.persistentArtworkCacheDir) return;
+
+    try {
+      await fs.promises.mkdir(this.persistentArtworkCacheDir, { recursive: true });
+
+      const fileName = `${createHash('sha256').update(cacheKey).digest('hex')}.art`;
+      const cachedPath = path.join(this.persistentArtworkCacheDir, fileName);
+      let bytes = 0;
+
+      if (artwork?.data) {
+        const imageBytes = dataUriToBuffer(artwork.data);
+        bytes = imageBytes.length;
+        if (bytes > MAX_PERSISTENT_ARTWORK_BYTES) return;
+        await fs.promises.writeFile(cachedPath, imageBytes);
+      }
+
+      const filePrefix = `${filePath}\u0000`;
+      for (const [oldKey, oldRecord] of this.persistentArtworkIndex) {
+        if (oldKey.startsWith(filePrefix) && oldKey !== cacheKey) {
+          this.persistentArtworkIndex.delete(oldKey);
+          if (oldRecord.mime !== null) {
+            const oldPath = this.persistentArtworkPath(oldKey);
+            if (oldPath) await fs.promises.rm(oldPath, { force: true }).catch(() => {});
+          }
+        }
+      }
+
+      this.persistentArtworkIndex.set(cacheKey, {
+        fileName,
+        mime: artwork?.format ?? null,
+        bytes,
+        lastAccessed: Date.now(),
+      });
+      await this.prunePersistentArtworkCache();
+      this.schedulePersistentIndexWrite();
+    } catch {
+      // Artwork remains available for the current session even if the cache
+      // directory is read-only or the disk fills up.
+    }
+  }
+
+  private async prunePersistentArtworkCache(): Promise<void> {
+    let totalBytes = 0;
+    for (const record of this.persistentArtworkIndex.values()) {
+      totalBytes += record.bytes;
+    }
+
+    if (totalBytes <= MAX_PERSISTENT_ARTWORK_BYTES) return;
+
+    const oldestFirst = Array.from(this.persistentArtworkIndex.entries())
+      .filter(([, record]) => record.mime !== null)
+      .sort(([, a], [, b]) => a.lastAccessed - b.lastAccessed);
+
+    for (const [key, record] of oldestFirst) {
+      if (totalBytes <= MAX_PERSISTENT_ARTWORK_BYTES) break;
+      this.persistentArtworkIndex.delete(key);
+      totalBytes -= record.bytes;
+      const cachedPath = this.persistentArtworkPath(key);
+      if (cachedPath) await fs.promises.rm(cachedPath, { force: true }).catch(() => {});
+    }
+  }
+
+  private schedulePersistentIndexWrite(): void {
+    if (!this.persistentArtworkCacheDir) return;
+
+    this.persistentIndexWrite = this.persistentIndexWrite
+      .catch(() => {})
+      .then(async () => {
+        await fs.promises.mkdir(this.persistentArtworkCacheDir!, { recursive: true });
+        const index: PersistentArtworkIndex = {
+          version: 1,
+          entries: Object.fromEntries(this.persistentArtworkIndex),
+        };
+        await fs.promises.writeFile(
+          path.join(this.persistentArtworkCacheDir!, 'index.json'),
+          JSON.stringify(index),
+          'utf8'
+        );
+      })
+      .catch(() => {
+        // Cache writes are best-effort and must never surface as an
+        // unhandled rejection in the renderer or during application shutdown.
+      });
+  }
+
+  private invalidateArtworkCache(filePath: string): void {
+    const filePrefix = `${filePath}\u0000`;
+    for (const [key, entry] of this.artworkCache) {
+      if (key.startsWith(filePrefix)) {
+        this.artworkCache.delete(key);
+        this.artworkCacheBytes -= entry.bytes;
+      }
+    }
+  }
+
+  private async invalidatePersistentArtworkCache(filePath: string): Promise<void> {
+    if (!this.persistentArtworkCacheDir) return;
+
+    const filePrefix = `${filePath}\u0000`;
+    for (const [key, record] of this.persistentArtworkIndex) {
+      if (key.startsWith(filePrefix)) {
+        this.persistentArtworkIndex.delete(key);
+        if (record.mime !== null) {
+          const cachedPath = this.persistentArtworkPath(key);
+          if (cachedPath) await fs.promises.rm(cachedPath, { force: true }).catch(() => {});
+        }
+      }
+    }
+    this.schedulePersistentIndexWrite();
   }
 
   /**
@@ -168,7 +529,11 @@ export class AudioMetadataService {
    * Updates tags on an MP3, FLAC, or WAV file on disk without modifying audio
    * stream data. Any other extension throws rather than silently doing nothing.
    */
-  async writeTrackTags(filePath: string, updates: TagUpdates): Promise<Track> {
+  async writeTrackTags(
+    filePath: string,
+    updates: TagUpdates,
+    options: { includeArtwork?: boolean } = {}
+  ): Promise<Track> {
     const ext = path.extname(filePath).toLowerCase();
 
     if (ext === '.mp3') {
@@ -181,8 +546,11 @@ export class AudioMetadataService {
       throw new Error(`Tag editing is not supported for ${ext || 'this file type'}`);
     }
 
+    this.invalidateArtworkCache(filePath);
+    await this.invalidatePersistentArtworkCache(filePath);
+
     // Re-read file to return updated Track model
-    return await this.readTrack(filePath, { skipCovers: false });
+    return await this.readTrack(filePath, { skipCovers: options.includeArtwork === false });
   }
 
   /**
@@ -190,6 +558,7 @@ export class AudioMetadataService {
    */
   private async writeMp3Tags(filePath: string, updates: TagUpdates): Promise<void> {
     const existingTags = NodeID3.read(filePath) || {};
+    const existingProducer = updates.producer === undefined ? await this.readProducerFromFile(filePath) : undefined;
 
     const newTags: NodeID3.Tags = { ...existingTags };
 
@@ -197,6 +566,13 @@ export class AudioMetadataService {
     if (updates.artist !== undefined) newTags.artist = updates.artist;
     if (updates.album !== undefined) newTags.album = updates.album;
     if (updates.albumArtist !== undefined) newTags.performerInfo = updates.albumArtist;
+    if (updates.producer !== undefined) {
+      newTags.involvedPeopleList = updates.producer.trim()
+        ? `producer${String.fromCharCode(0)}${updates.producer.trim()}`
+        : undefined;
+    } else if (existingProducer) {
+      newTags.involvedPeopleList = `producer${String.fromCharCode(0)}${existingProducer}`;
+    }
     if (updates.genre !== undefined) newTags.genre = updates.genre;
     if (updates.year !== undefined) newTags.year = updates.year ? `${updates.year}` : undefined;
 
@@ -312,6 +688,7 @@ export class AudioMetadataService {
     if (updates.artist !== undefined) comments['ARTIST'] = [updates.artist];
     if (updates.album !== undefined) comments['ALBUM'] = [updates.album];
     if (updates.albumArtist !== undefined) comments['ALBUMARTIST'] = [updates.albumArtist];
+    if (updates.producer !== undefined) comments['PRODUCER'] = [updates.producer];
     if (updates.genre !== undefined) comments['GENRE'] = [updates.genre];
     if (updates.year !== undefined) comments['DATE'] = [updates.year ? `${updates.year}` : ''];
     if (updates.trackNumber !== undefined) comments['TRACKNUMBER'] = [`${updates.trackNumber}`];
@@ -453,6 +830,7 @@ export class AudioMetadataService {
    */
   private async writeWavTags(filePath: string, updates: TagUpdates): Promise<void> {
     const buf = await fs.promises.readFile(filePath);
+    const existingProducer = updates.producer === undefined ? await this.readProducerFromFile(filePath) : undefined;
     if (buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE') {
       throw new Error('Not a valid WAV file: missing RIFF/WAVE header');
     }
@@ -480,6 +858,13 @@ export class AudioMetadataService {
     if (updates.artist !== undefined) tags.artist = updates.artist;
     if (updates.album !== undefined) tags.album = updates.album;
     if (updates.albumArtist !== undefined) tags.performerInfo = updates.albumArtist;
+    if (updates.producer !== undefined) {
+      tags.involvedPeopleList = updates.producer.trim()
+        ? `producer${String.fromCharCode(0)}${updates.producer.trim()}`
+        : undefined;
+    } else if (existingProducer) {
+      tags.involvedPeopleList = `producer${String.fromCharCode(0)}${existingProducer}`;
+    }
     if (updates.genre !== undefined) tags.genre = updates.genre;
     if (updates.year !== undefined) tags.year = updates.year ? `${updates.year}` : undefined;
 

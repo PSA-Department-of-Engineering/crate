@@ -97,7 +97,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
     <div
       ref={menuRef}
       style={{ left: `${left}px`, top: `${top}px` }}
-      className="fixed z-50 min-w-[210px] max-w-[280px] bg-popover/95 backdrop-blur-md text-popover-foreground border border-border rounded-xl shadow-2xl py-1.5 animate-in fade-in zoom-in-95 duration-100 select-none text-xs"
+      className="theme-popover fixed z-50 min-w-[210px] max-w-[280px] bg-popover text-popover-foreground border border-border rounded-xl shadow-2xl py-1.5 animate-in fade-in zoom-in-95 duration-100 select-none text-xs"
       onClick={(e) => e.stopPropagation()}
       onContextMenu={(e) => {
         e.preventDefault();

@@ -219,6 +219,7 @@ export function useLibrary() {
             artist: tags.artist !== undefined ? tags.artist : t.artist,
             album: tags.album !== undefined ? tags.album : t.album,
             albumArtist: tags.albumArtist !== undefined ? tags.albumArtist : t.albumArtist,
+            producer: tags.producer !== undefined ? tags.producer : t.producer,
             year: tags.year !== undefined ? tags.year : t.year,
             genre: tags.genre !== undefined ? tags.genre : t.genre,
             trackNumber: tags.trackNumber !== undefined ? tags.trackNumber : t.trackNumber,
@@ -239,7 +240,28 @@ export function useLibrary() {
       try {
         const updatedTracks = await window.crateBridge.batchSaveTags(filePaths, tags);
         const map = new Map(updatedTracks.map(t => [t.filePath, t]));
-        setTracks(prev => prev.map(t => map.get(t.filePath) || t));
+        setTracks(prev => prev.map(t => {
+          const updated = map.get(t.filePath);
+          if (!updated) return t;
+
+          // Batch writes intentionally omit the potentially large artwork
+          // payload from their IPC response. Reapply the one shared value
+          // locally so the library updates instantly without multiplying a
+          // 500 KB image by every track in the batch.
+          if (tags.picture !== undefined) {
+            return {
+              ...updated,
+              picture: tags.picture
+                ? { format: tags.picture.format, data: tags.picture.data }
+                : undefined,
+            };
+          }
+
+          // The compact batch response omits artwork even when the batch only
+          // changed text tags. Preserve any artwork already held by the
+          // renderer in that case.
+          return updated.picture ? updated : { ...updated, picture: t.picture };
+        }));
         return updatedTracks;
       } catch (err) {
         console.error('Batch tag save failed:', err);
@@ -254,6 +276,7 @@ export function useLibrary() {
             artist: tags.artist !== undefined && tags.artist !== '' ? tags.artist : t.artist,
             album: tags.album !== undefined && tags.album !== '' ? tags.album : t.album,
             albumArtist: tags.albumArtist !== undefined && tags.albumArtist !== '' ? tags.albumArtist : t.albumArtist,
+            producer: tags.producer !== undefined && tags.producer !== '' ? tags.producer : t.producer,
             year: tags.year !== undefined ? tags.year : t.year,
             genre: tags.genre !== undefined && tags.genre !== '' ? tags.genre : t.genre,
             totalTracks: tags.totalTracks !== undefined ? tags.totalTracks : t.totalTracks,

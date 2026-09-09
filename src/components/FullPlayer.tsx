@@ -189,7 +189,7 @@ export const FullPlayer: React.FC<FullPlayerProps> = ({
 
         {/* Output Device & Volume */}
         <div className="flex items-center justify-between w-full mt-6 pt-4 border-t border-border/60">
-          {/* Output Sink Liquid Glass Selector */}
+          {/* Output sink selector follows the active theme. */}
           <div className="relative" ref={sinkDropdownRef}>
             <button
               onClick={() => setIsSinkMenuOpen(!isSinkMenuOpen)}
@@ -200,9 +200,9 @@ export const FullPlayer: React.FC<FullPlayerProps> = ({
               <Speaker className="w-4 h-4" />
             </button>
 
-            {/* Liquid Glass Dropdown Menu */}
+            {/* Theme-aware dropdown menu */}
             {isSinkMenuOpen && (
-              <div className="absolute left-0 bottom-full mb-2 min-w-[220px] max-w-[280px] bg-popover/95 backdrop-blur-md text-popover-foreground border border-border rounded-xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 select-none text-xs">
+              <div className="theme-popover absolute left-0 bottom-full mb-2 min-w-[220px] max-w-[280px] bg-popover text-popover-foreground border border-border rounded-xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 select-none text-xs">
                 <div className="px-3 py-1.5 border-b border-border/60 mb-1 flex flex-col">
                   <span className="font-bold text-foreground">Audio Output Devices</span>
                   <span className="text-[10px] text-muted-foreground">Select speaker or headphone destination</span>

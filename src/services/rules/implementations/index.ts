@@ -7,3 +7,4 @@ export * from './CompanionJunkCleanupRule';
 export * from './MaxPathLengthRule';
 export * from './AutoEmbedFolderArtworkRule';
 export * from './ArtworkDimensionRule';
+export * from './OrganizeByMetadataRule';

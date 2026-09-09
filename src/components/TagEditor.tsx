@@ -33,6 +33,7 @@ export const TagEditor: React.FC<TagEditorProps> = ({
   const [artist, setArtist] = useState<string>('');
   const [album, setAlbum] = useState<string>('');
   const [albumArtist, setAlbumArtist] = useState<string>('');
+  const [producer, setProducer] = useState<string>('');
   const [year, setYear] = useState<string>('');
   const [genre, setGenre] = useState<string>('');
   const [trackNumber, setTrackNumber] = useState<string>('');
@@ -77,6 +78,7 @@ export const TagEditor: React.FC<TagEditorProps> = ({
       setArtist(singleTrack.artist || '');
       setAlbum(singleTrack.album || '');
       setAlbumArtist(singleTrack.albumArtist || '');
+      setProducer(singleTrack.producer || '');
       setYear(singleTrack.year ? singleTrack.year.toString() : '');
       setGenre(singleTrack.genre || '');
       setTrackNumber(singleTrack.trackNumber ? singleTrack.trackNumber.toString() : '');
@@ -110,6 +112,7 @@ export const TagEditor: React.FC<TagEditorProps> = ({
       const allSameArtist = selectedTracks.every(t => t.artist === first.artist);
       const allSameAlbum = selectedTracks.every(t => t.album === first.album);
       const allSameAlbumArtist = selectedTracks.every(t => t.albumArtist === first.albumArtist);
+      const allSameProducer = selectedTracks.every(t => t.producer === first.producer);
       const allSameYear = selectedTracks.every(t => t.year === first.year);
       const allSameGenre = selectedTracks.every(t => t.genre === first.genre);
 
@@ -117,6 +120,7 @@ export const TagEditor: React.FC<TagEditorProps> = ({
       setArtist(allSameArtist ? first.artist || '' : '');
       setAlbum(allSameAlbum ? first.album || '' : '');
       setAlbumArtist(allSameAlbumArtist ? first.albumArtist || '' : '');
+      setProducer(allSameProducer ? first.producer || '' : '');
       setYear(allSameYear && first.year ? first.year.toString() : '');
       setGenre(allSameGenre ? first.genre || '' : '');
       setTrackNumber('');
@@ -158,6 +162,10 @@ export const TagEditor: React.FC<TagEditorProps> = ({
     if (artist.trim()) tagUpdates.artist = artist.trim();
     if (album.trim()) tagUpdates.album = album.trim();
     if (albumArtist.trim()) tagUpdates.albumArtist = albumArtist.trim();
+    // A blank producer is an explicit clear for a single track. In batch mode
+    // an empty field means "leave each selected track unchanged" because the
+    // field may be blank when the selected tracks have different credits.
+    if (!isBatch || producer.trim()) tagUpdates.producer = producer.trim();
     if (year.trim()) {
       const y = parseInt(year.trim(), 10);
       if (!isNaN(y)) tagUpdates.year = y;
@@ -394,17 +402,32 @@ export const TagEditor: React.FC<TagEditorProps> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                Album Artist
-              </label>
-              <input
-                type="text"
-                value={albumArtist}
-                onChange={e => setAlbumArtist(e.target.value)}
-                placeholder="e.g. Various Artists"
-                className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
-              />
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                  Album Artist
+                </label>
+                <input
+                  type="text"
+                  value={albumArtist}
+                  onChange={e => setAlbumArtist(e.target.value)}
+                  placeholder="e.g. Various Artists"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                  Producer
+                </label>
+                <input
+                  type="text"
+                  value={producer}
+                  onChange={e => setProducer(e.target.value)}
+                  placeholder="e.g. Quincy Jones"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2">

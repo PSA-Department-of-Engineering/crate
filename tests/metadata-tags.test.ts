@@ -25,6 +25,7 @@ describe('Audio Metadata & Tagging Service', () => {
       title: 'Comfortably Numb',
       artist: 'Pink Floyd',
       album: 'The Wall',
+      producer: 'Bob Ezrin',
       year: 1979,
       genre: 'Progressive Rock',
       trackNumber: 6,
@@ -35,6 +36,7 @@ describe('Audio Metadata & Tagging Service', () => {
     expect(updated.title).toBe('Comfortably Numb');
     expect(updated.artist).toBe('Pink Floyd');
     expect(updated.album).toBe('The Wall');
+    expect(updated.producer).toBe('Bob Ezrin');
     expect(updated.year).toBe(1979);
 
     // Cleanup
@@ -61,6 +63,7 @@ describe('Audio Metadata & Tagging Service', () => {
       title: 'Shine On You Crazy Diamond',
       artist: 'Pink Floyd',
       album: 'Wish You Were Here',
+      producer: 'Brian Eno',
       year: 1975,
       genre: 'Progressive Rock',
       trackNumber: 1,
@@ -71,6 +74,7 @@ describe('Audio Metadata & Tagging Service', () => {
     expect(updated.title).toBe('Shine On You Crazy Diamond');
     expect(updated.artist).toBe('Pink Floyd');
     expect(updated.album).toBe('Wish You Were Here');
+    expect(updated.producer).toBe('Brian Eno');
     expect(updated.year).toBe(1975);
 
     // Verify audio stream tail was preserved
@@ -236,6 +240,7 @@ describe('Audio Metadata & Tagging Service', () => {
       artist: 'Producer',
       album: 'Masters',
       albumArtist: 'Producer',
+      producer: 'RicoWorld',
       genre: 'Electronic',
       year: 2024,
       trackNumber: 3,
@@ -250,6 +255,7 @@ describe('Audio Metadata & Tagging Service', () => {
     const reread = await metadataService.readTrack(wavPath, { skipCovers: false });
     expect(reread.album).toBe('Masters');
     expect(reread.albumArtist).toBe('Producer');
+    expect(reread.producer).toBe('RicoWorld');
     expect(reread.year).toBe(2024);
     expect(reread.trackNumber).toBe(3);
     expect(reread.picture?.format).toBe('image/png');
@@ -282,14 +288,70 @@ describe('Audio Metadata & Tagging Service', () => {
     }
     expect(idCount).toBe(1);
     expect((await metadataService.readTrack(wavPath)).title).toBe('Night Drive (Reprise)');
+    expect((await metadataService.readTrack(wavPath)).producer).toBe('RicoWorld');
 
     await fs.promises.rm(tempDir, { recursive: true, force: true });
+  });
+
+  intent('INT-TAG-008', 'Producer credits survive a later metadata edit on ID3-backed files', async () => {
+    const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-test-producer-'));
+    const mp3Path = path.join(tempDir, 'producer.mp3');
+    const mockMp3 = Buffer.concat([Buffer.from([0xFF, 0xFB, 0x90, 0x64]), Buffer.alloc(2048, 0)]);
+
+    try {
+      await fs.promises.writeFile(mp3Path, mockMp3);
+      await metadataService.writeTrackTags(mp3Path, { producer: 'RicoWorld' });
+      await metadataService.writeTrackTags(mp3Path, { title: 'Producer Credit' });
+
+      const reread = await metadataService.readTrack(mp3Path);
+      expect(reread.title).toBe('Producer Credit');
+      expect(reread.producer).toBe('RicoWorld');
+
+      await metadataService.writeTrackTags(mp3Path, { producer: '' });
+      expect((await metadataService.readTrack(mp3Path)).producer).toBeUndefined();
+    } finally {
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
+    }
   });
 
   it('writeTrackTags refuses a format it has no writer for instead of silently no-opping', async () => {
     await expect(
       metadataService.writeTrackTags(path.join(os.tmpdir(), 'whatever.aiff'), { title: 'x' })
     ).rejects.toThrow(/not supported/i);
+  });
+
+  it('caches artwork during a session and invalidates it when a sidecar changes', async () => {
+    const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-art-cache-'));
+    const audioPath = path.join(tempDir, 'track.mp3');
+    const coverPath = path.join(tempDir, 'folder.jpg');
+    const bareMp3 = Buffer.concat([Buffer.from([0xFF, 0xFB, 0x90, 0x64]), Buffer.alloc(1024, 0)]);
+    const jpegBytes = Buffer.concat([
+      Buffer.from([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01]),
+      Buffer.alloc(64, 0),
+      Buffer.from([0xFF, 0xD9]),
+    ]);
+    const pngBytes = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64'
+    );
+
+    try {
+      await fs.promises.writeFile(audioPath, bareMp3);
+      await fs.promises.writeFile(coverPath, jpegBytes);
+
+      const first = await metadataService.getArtwork(audioPath);
+      const second = await metadataService.getArtwork(audioPath);
+      expect(first?.format).toBe('image/jpeg');
+      expect(second).toEqual(first);
+
+      // The audio file is unchanged; the sidecar signature alone must force a
+      // fresh read so replacing folder.jpg is reflected in the UI.
+      await fs.promises.writeFile(coverPath, pngBytes);
+      const replaced = await metadataService.getArtwork(audioPath);
+      expect(replaced?.format).toBe('image/png');
+    } finally {
+      await fs.promises.rm(tempDir, { recursive: true, force: true });
+    }
   });
 
   intent('INT-TAG-006', 'Network boundary invariant ensures 100% offline execution without telemetry', async () => {

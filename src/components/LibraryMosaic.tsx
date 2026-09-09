@@ -15,11 +15,12 @@ import {
   LayoutGrid,
   List,
 } from 'lucide-react';
-import { Track, EmbeddedArtwork, ArtistGroup, AlbumGroup } from '../models/types';
+import { Track, ArtistGroup, AlbumGroup } from '../models/types';
 import {
   groupTracksByArtist,
   formatDuration,
   formatTotalPlaytime,
+  summarizeMetadataIssues,
 } from '../utils/library-utils';
 import { ContextMenu, MenuItem } from './ContextMenu';
 import {
@@ -29,6 +30,48 @@ import {
   createSongMenuItems,
 } from '../utils/menu-utils';
 import { setDragData } from '../utils/drag-utils';
+import { clearArtworkCache, LazyArtwork } from './LazyArtwork';
+
+interface MetadataIssueBadgeProps {
+  tracks: Track[];
+  onEditTags?: (tracks: Track[]) => void;
+}
+
+const MetadataIssueBadge: React.FC<MetadataIssueBadgeProps> = ({ tracks, onEditTags }) => {
+  const { affectedTracks, issueTypes } = summarizeMetadataIssues(tracks);
+  if (affectedTracks.length === 0) return null;
+
+  const songLabel = `${affectedTracks.length} ${affectedTracks.length === 1 ? 'song needs' : 'songs need'} metadata attention`;
+  const issueLabel = issueTypes.join(', ');
+  const label = `${songLabel}: ${issueLabel}`;
+  const className =
+    'absolute top-2 left-2 z-10 inline-flex items-center gap-1 rounded-full border border-amber-300/70 bg-background/90 px-2 py-1 text-[10px] font-bold text-amber-700 shadow-sm backdrop-blur-sm dark:border-amber-500/40 dark:text-amber-300';
+
+  if (onEditTags) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onEditTags(affectedTracks);
+        }}
+        className={`${className} cursor-pointer transition-colors hover:bg-amber-50 dark:hover:bg-amber-950/50`}
+        title={`${label}. Click to open Tag Editor.`}
+        aria-label={`${label}. Open Tag Editor.`}
+      >
+        <AlertTriangle className="w-3.5 h-3.5" aria-hidden="true" />
+        <span>{affectedTracks.length}</span>
+      </button>
+    );
+  }
+
+  return (
+    <span className={className} title={label} aria-label={label}>
+      <AlertTriangle className="w-3.5 h-3.5" aria-hidden="true" />
+      <span>{affectedTracks.length}</span>
+    </span>
+  );
+};
 
 interface LibraryMosaicProps {
   tracks: Track[];
@@ -41,6 +84,12 @@ interface LibraryMosaicProps {
   onPlayNext?: (tracks: Track[]) => void;
   onAddToQueue?: (tracks: Track[]) => void;
   onEditTags?: (tracks: Track[]) => void;
+  onChangeCover?: (
+    tracks: Track[],
+    scope: 'artist' | 'album',
+    name: string,
+    currentArtwork?: ArtistGroup['artworks'][number]
+  ) => void;
   onAddToSync?: (scope: 'all' | 'playlists' | 'albums', names?: string[], tracks?: Track[]) => void;
   onExportPlaylist?: (name: string, tracks: Track[]) => void;
   onRevealInExplorer?: (filePath: string) => void;
@@ -62,6 +111,7 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
   onPlayNext,
   onAddToQueue,
   onEditTags,
+  onChangeCover,
   onAddToSync,
   onExportPlaylist,
   onRevealInExplorer,
@@ -74,6 +124,15 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
 }) => {
   const [selectedArtistName, setSelectedArtistName] = useState<string | null>(null);
   const [selectedAlbumName, setSelectedAlbumName] = useState<string | null>(null);
+  const [artworkGeneration, setArtworkGeneration] = useState(0);
+
+  // A rescan can discover a replaced sidecar image without changing the
+  // audio file's mtime. Reset the renderer cache whenever the library result
+  // changes so the main-process source signature gets a chance to revalidate.
+  useEffect(() => {
+    clearArtworkCache();
+    setArtworkGeneration((generation) => generation + 1);
+  }, [tracks]);
 
   // Active context menu state
   const [contextMenu, setContextMenu] = useState<{
@@ -113,6 +172,7 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
       onEditTags: (trks: Track[]) => {
         if (onEditTags) onEditTags(trks);
       },
+      onChangeCover,
       onAddToSync,
       onExportPlaylist,
       onRevealInExplorer,
@@ -123,6 +183,7 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
       onPlayNext,
       onAddToQueue,
       onEditTags,
+      onChangeCover,
       onAddToSync,
       onExportPlaylist,
       onRevealInExplorer,
@@ -271,52 +332,8 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
     });
   };
 
-  // Render a 2x2 artwork mosaic or single image for an artist card
-  const renderArtistArtwork = (artist: ArtistGroup) => {
-    const arts = artist.artworks;
-
-    if (arts.length >= 4) {
-      return (
-        <div className="grid grid-cols-2 grid-rows-2 w-full h-full bg-secondary">
-          {arts.slice(0, 4).map((art, idx) => (
-            <img
-              key={idx}
-              src={art.data}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          ))}
-        </div>
-      );
-    }
-
-    if (arts.length === 2 || arts.length === 3) {
-      return (
-        <div className="grid grid-cols-2 w-full h-full bg-secondary">
-          {arts.slice(0, 2).map((art, idx) => (
-            <img
-              key={idx}
-              src={art.data}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          ))}
-        </div>
-      );
-    }
-
-    if (arts.length === 1) {
-      return (
-        <img
-          src={arts[0].data}
-          alt={artist.artistName}
-          className="w-full h-full object-cover"
-        />
-      );
-    }
-
-    // Monogram / vinyl fallback
-    const initials = artist.artistName
+  const renderArtistFallback = (artistName: string) => {
+    const initials = artistName
       .split(' ')
       .map((w) => w[0])
       .join('')
@@ -333,24 +350,87 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
     );
   };
 
-  // Render album artwork cover
-  const renderAlbumArtwork = (album: AlbumGroup, sizeClass: string = 'w-full h-full') => {
-    if (album.artwork?.data) {
+  const renderArtistArtwork = (artist: ArtistGroup) => {
+    // Artwork is selected from one representative track per album. This
+    // preserves the existing artist mosaic while allowing the image itself to
+    // be fetched lazily rather than loading every track's cover.
+    const candidates = artist.albums
+      .map((album) => {
+        const track = album.tracks[0];
+        return track ? { track, artwork: album.artwork } : null;
+      })
+      .filter((candidate): candidate is { track: Track; artwork: AlbumGroup['artwork'] } => Boolean(candidate))
+      .slice(0, 4);
+
+    const renderCandidate = (
+      candidate: { track: Track; artwork: AlbumGroup['artwork'] },
+      key: string
+    ) => (
+      <LazyArtwork
+        key={key}
+        filePath={candidate.track.filePath}
+        initialArtwork={candidate.artwork}
+        alt=""
+        imageClassName="w-full h-full object-cover"
+        fallback={<div className="w-full h-full bg-secondary" />}
+        cacheGeneration={artworkGeneration}
+      />
+    );
+
+    if (candidates.length >= 4) {
       return (
-        <img
-          src={album.artwork.data}
-          alt={album.albumName}
-          className={`${sizeClass} object-cover`}
+        <div className="grid grid-cols-2 grid-rows-2 w-full h-full bg-secondary">
+          {candidates.map((candidate, idx) => renderCandidate(candidate, `${candidate.track.id}-${idx}`))}
+        </div>
+      );
+    }
+
+    if (candidates.length >= 2) {
+      return (
+        <div className="grid grid-cols-2 w-full h-full bg-secondary">
+          {candidates.slice(0, 2).map((candidate, idx) => renderCandidate(candidate, `${candidate.track.id}-${idx}`))}
+        </div>
+      );
+    }
+
+    if (candidates.length === 1) {
+      return (
+        <LazyArtwork
+          filePath={candidates[0].track.filePath}
+          initialArtwork={candidates[0].artwork}
+          alt={artist.artistName}
+          imageClassName="w-full h-full object-cover"
+          fallback={renderArtistFallback(artist.artistName)}
+          cacheGeneration={artworkGeneration}
         />
       );
     }
 
-    return (
+    return renderArtistFallback(artist.artistName);
+  };
+
+  // Render album artwork cover
+  const renderAlbumArtwork = (album: AlbumGroup, sizeClass: string = 'w-full h-full') => {
+    const representativeTrack = album.tracks[0];
+    const fallback = (
       <div
         className={`${sizeClass} bg-gradient-to-br from-secondary via-muted to-background flex flex-col items-center justify-center text-muted-foreground relative overflow-hidden`}
       >
         <Disc className="w-12 h-12 text-primary/30" />
       </div>
+    );
+
+    if (!representativeTrack) return fallback;
+
+    return (
+      <LazyArtwork
+        filePath={representativeTrack.filePath}
+        initialArtwork={album.artwork}
+        alt={album.albumName}
+        imageClassName={`${sizeClass} object-cover`}
+        fallback={fallback}
+        cacheGeneration={artworkGeneration}
+      />
     );
   };
 
@@ -559,6 +639,8 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
                         <MoreVertical className="w-3.5 h-3.5" />
                       </button>
                     </div>
+
+                    <MetadataIssueBadge tracks={artist.tracks} onEditTags={onEditTags} />
                   </div>
 
                   {/* Card Content */}
@@ -641,6 +723,8 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
                         <MoreVertical className="w-3.5 h-3.5" />
                       </button>
                     </div>
+
+                    <MetadataIssueBadge tracks={album.tracks} onEditTags={onEditTags} />
                   </div>
 
                   {/* Card Content */}

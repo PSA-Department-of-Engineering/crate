@@ -31,10 +31,15 @@ const CATEGORY_LABELS: Record<RuleCategory, { label: string; color: string; icon
   },
 };
 
+const CATEGORY_ORDER: RuleCategory[] = ['filename', 'tag', 'structure', 'cleanup'];
+
 export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const rules = defaultRuleRegistry.getAllRules();
+  const orderedRules = CATEGORY_ORDER.flatMap((category) =>
+    rules.filter((rule) => rule.category === category)
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -66,7 +71,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
           {rules.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">No rules registered.</p>
           ) : (
-            rules.map((rule, idx) => {
+            orderedRules.map((rule, idx) => {
               const cat = CATEGORY_LABELS[rule.category] || CATEGORY_LABELS.filename;
               const Icon = cat.icon;
 

@@ -1,5 +1,5 @@
-import * as path from 'path';
 import { Track, AudioFormat } from '../../src/models/types';
+import { getOrganizationRelativePath } from '../../src/utils/organization-path';
 
 /**
  * Forbidden characters in FAT32, exFAT, and Windows filesystems:
@@ -64,13 +64,5 @@ export interface OrganizationOptions {
  * places the file and never re-introduces a "Disc N" directory.
  */
 export function getCarRelativePath(track: Track, options: OrganizationOptions = {}): string {
-  const artist = sanitizeFat32Segment(track.artist || track.albumArtist || 'Unknown Artist');
-  const album = sanitizeFat32Segment(track.album || 'Unknown Album');
-  const title = sanitizeFat32Segment(track.title || 'Unknown Title');
-  const trackNumStr = formatTrackNumber(track.trackNumber);
-  const activeFormat = options.targetFormat || track.format;
-  const ext = activeFormat === 'flac' ? '.flac' : activeFormat === 'wav' ? '.wav' : '.mp3';
-
-  const filename = `${trackNumStr} ${title}${ext}`;
-  return path.join(artist, album, filename).replace(/\\/g, '/');
+  return getOrganizationRelativePath(track, options.targetFormat || track.format);
 }

@@ -12,6 +12,7 @@ export interface Track {
   artist: string;
   album: string;
   albumArtist?: string;
+  producer?: string;
   trackNumber?: number;
   totalTracks?: number;
   discNumber?: number;
@@ -56,6 +57,7 @@ export interface TagUpdates {
   artist?: string;
   album?: string;
   albumArtist?: string;
+  producer?: string;
   trackNumber?: number;
   totalTracks?: number;
   discNumber?: number;
@@ -142,8 +144,10 @@ export interface CrateBridge {
   scanLibrary: (folderPath: string) => Promise<{ tracks: Track[]; corruptFiles: string[] }>;
   getCachedLibrary?: () => Promise<{ tracks: Track[]; corruptFiles: string[] }>;
   getTrackArtwork: (filePath: string) => Promise<EmbeddedArtwork | null>;
+  fetchArtworkFromUrl: (url: string) => Promise<EmbeddedArtwork>;
   saveTrackTags: (filePath: string, tags: TagUpdates) => Promise<Track>;
   batchSaveTags: (filePaths: string[], tags: TagUpdates) => Promise<Track[]>;
+  moveTrackFile: (filePath: string, destinationPath: string, libraryRoot: string) => Promise<Track>;
   getVolumes: () => Promise<VolumeInfo[]>;
   analyzeSync: (options: {
     sourceTracks: Track[];

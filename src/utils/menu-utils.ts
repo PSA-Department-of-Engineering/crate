@@ -9,6 +9,7 @@ import {
   FileSpreadsheet,
   Copy,
   FolderOpen,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { Track, ArtistGroup, AlbumGroup } from '../models/types';
 import { MenuItem } from '../components/ContextMenu';
@@ -19,6 +20,12 @@ export interface ContextActionHandlers {
   onPlayNext: (tracks: Track[]) => void;
   onAddToQueue: (tracks: Track[]) => void;
   onEditTags: (tracks: Track[]) => void;
+  onChangeCover?: (
+    tracks: Track[],
+    scope: 'artist' | 'album',
+    name: string,
+    currentArtwork?: ArtistGroup['artworks'][number]
+  ) => void;
   onAddToSync?: (scope: 'all' | 'playlists' | 'albums', names?: string[], tracks?: Track[]) => void;
   onExportPlaylist?: (name: string, tracks: Track[]) => void;
   onRevealInExplorer?: (filePath: string) => void;
@@ -83,6 +90,16 @@ export function createArtistMenuItems(
         handlers.onAddToSync!('albums', albumNames, tracks);
       },
       divider: !!(sampleTrack && handlers.onRevealInExplorer),
+    });
+  }
+
+  if (handlers.onChangeCover) {
+    items.splice(5, 0, {
+      id: 'change-artist-cover',
+      label: 'Change Artist Cover',
+      icon: React.createElement(ImageIcon, { className: 'w-3.5 h-3.5' }),
+      onClick: () => handlers.onChangeCover!(tracks, 'artist', artist.artistName, artist.artworks[0]),
+      divider: true,
     });
   }
 
@@ -152,6 +169,16 @@ export function createAlbumMenuItems(
       label: 'Add to Car Sync',
       icon: React.createElement(Car, { className: 'w-3.5 h-3.5' }),
       onClick: () => handlers.onAddToSync!('albums', [album.albumName], tracks),
+    });
+  }
+
+  if (handlers.onChangeCover) {
+    items.splice(5, 0, {
+      id: 'change-album-cover',
+      label: 'Change Album Cover',
+      icon: React.createElement(ImageIcon, { className: 'w-3.5 h-3.5' }),
+      onClick: () => handlers.onChangeCover!(tracks, 'album', album.albumName, album.artwork),
+      divider: true,
     });
   }
 

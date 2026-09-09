@@ -167,6 +167,20 @@ INT-TAG-007:
   criticality: high
   rationale: "WAV masters are a supported source (INT-LIB-001); without a writer, tag edits on a WAV were silently discarded. Embedding ID3v2 keeps the edits readable by the library scanner and carries them onto the car FLAC when sync transcodes with -map_metadata."
 
+INT-TAG-008:
+  version: 1.0.0
+  status: active
+  statement: "The metadata service exposes producer credits as an editable field, reads and writes them for MP3, FLAC, and WAV files, and preserves existing producer credits when a later edit changes another tag."
+  derived_from:
+    - REQ-TAG-001
+    - REQ-TAG-002
+  test:
+    scope: unit
+    component: TagService
+    type: behavior
+  criticality: high
+  rationale: "Producer credits are distinct from track artist and album artist metadata and must remain available through normal tag-editing workflows."
+
 INT-ORG-001:
   version: 1.0.0
   status: active
@@ -206,6 +220,20 @@ INT-ORG-003:
     type: invariant
   criticality: high
   rationale: "Prevents filesystem errors when writing to USB/SD storage formatted with FAT32 or exFAT."
+
+INT-ORG-004:
+  version: 1.0.0
+  status: active
+  statement: "The metadata organization rule detects tracks whose saved Artist and Album do not match their source-library path, previews the canonical destination, creates missing folders, moves the file without overwriting an existing destination, and rescans the library after the Fix batch."
+  derived_from:
+    - REQ-TAG-002
+    - REQ-ORG-001
+  test:
+    scope: unit
+    component: MetadataOrganizer
+    type: behavior
+  criticality: high
+  rationale: "Lets users enter missing Artist and Album metadata first, then safely materialize those values as the library folder structure."
 
 INT-PLY-001:
   version: 1.0.0

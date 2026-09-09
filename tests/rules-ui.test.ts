@@ -54,6 +54,7 @@ describe('Rules UI & Modals Integration (#37, #40, #44)', () => {
       expect(ruleIds).toContain('rule-multidisc-standardizer');
       expect(ruleIds).toContain('rule-filesystem-sanitize');
       expect(ruleIds).toContain('rule-companion-junk-cleanup');
+      expect(ruleIds).toContain('rule-organize-by-metadata');
     });
 
     it('each rule has clean display name, category, and description', () => {

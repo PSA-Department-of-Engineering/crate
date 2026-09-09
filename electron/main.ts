@@ -7,6 +7,8 @@ import { LibraryDatabaseService } from './services/library-database';
 import { SyncManagerService } from './services/sync-manager';
 import { PlaylistExporterService } from './services/playlist-exporter';
 import { SettingsManagerService } from './services/settings-manager';
+import { fetchArtworkFromUrl } from './services/artwork-input';
+import { moveLibraryFile, validateLibraryMoveRequest } from './services/library-organizer';
 
 import { TagUpdates, Track, Playlist, SyncPlan } from '../src/models/types';
 
@@ -14,7 +16,7 @@ let mainWindow: BrowserWindow | null = null;
 let playerWindow: BrowserWindow | null = null;
 
 const dbService = new LibraryDatabaseService();
-const metadataService = new AudioMetadataService();
+const metadataService = new AudioMetadataService(path.join(app.getPath('userData'), 'artwork-cache'));
 const libraryScanner = new LibraryScannerService(metadataService, dbService);
 const syncManager = new SyncManagerService();
 const settingsManager = new SettingsManagerService();
@@ -230,6 +232,30 @@ ipcMain.handle('metadata:get-artwork', async (_event, filePath: string) => {
   return await metadataService.getArtwork(filePath);
 });
 
+ipcMain.handle('library:move-track', async (_event, data: unknown) => {
+  const configuredLibraryRoot = await settingsManager.getLibraryPath();
+  if (!configuredLibraryRoot) {
+    throw new Error('No managed library root is configured.');
+  }
+
+  const request = validateLibraryMoveRequest(data, configuredLibraryRoot);
+  const moved = await moveLibraryFile(request.filePath, request.destinationPath, configuredLibraryRoot);
+  const updated = await metadataService.readTrack(moved.destinationPath, { skipCovers: true });
+
+  // The scanner uses file paths as track identities. Replace the old database
+  // row immediately; the caller performs a full incremental rescan after the
+  // Fix batch completes to refresh every renderer reference.
+  dbService.deleteTracksByPaths([moved.sourcePath]);
+  dbService.upsertTrack(updated);
+  return updated;
+});
+
+// Download artwork in the main process so remote images do not depend on
+// browser CORS headers. The renderer performs the crop and final JPEG encode.
+ipcMain.handle('artwork:fetch-url', async (_event, url: string) => {
+  return await fetchArtworkFromUrl(url);
+});
+
 // Settings & Config persistence handlers
 ipcMain.handle('settings:get-library-path', async () => {
   return await settingsManager.getLibraryPath();
@@ -257,7 +283,9 @@ ipcMain.handle('tags:save', async (_event, data: { filePath: string; tags: TagUp
 ipcMain.handle('tags:batch-save', async (_event, data: { filePaths: string[]; tags: TagUpdates }) => {
   const updatedTracks: Track[] = [];
   for (const filePath of data.filePaths) {
-    const updated = await metadataService.writeTrackTags(filePath, data.tags);
+    // Batch callers already know the artwork being applied. Avoid parsing and
+    // returning the same large embedded image once per track.
+    const updated = await metadataService.writeTrackTags(filePath, data.tags, { includeArtwork: false });
     updatedTracks.push(updated);
   }
   dbService.upsertTracks(updatedTracks);

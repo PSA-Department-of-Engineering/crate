@@ -6,6 +6,7 @@ import {
   RuleAuditResult,
   BatchProgress,
   RuleExecutionResult,
+  RuleApplyResult,
 } from './types';
 
 export class RulesEngine {
@@ -63,7 +64,7 @@ export class RulesEngine {
     tracks: Track[],
     handlers: {
       onProgress?: (progress: BatchProgress) => void;
-      applyViolation?: (violation: RuleViolation, track: Track) => Promise<void>;
+      applyViolation?: (violation: RuleViolation, track: Track) => Promise<RuleApplyResult | void>;
     } = {}
   ): Promise<RuleExecutionResult> {
     const trackMap = new Map(tracks.map(t => [t.id, t]));
@@ -85,13 +86,26 @@ export class RulesEngine {
       }
 
       try {
+        let applyResult: RuleApplyResult | void = undefined;
         if (handlers.applyViolation && track) {
-          await handlers.applyViolation(violation, track);
+          applyResult = await handlers.applyViolation(violation, track);
         } else {
           const rule = this.registry.getRule(violation.ruleId);
           if (rule?.apply && track) {
-            await rule.apply(track, violation);
+            applyResult = await rule.apply(track, violation);
           }
+        }
+
+        // A fix may rename a file. Keep subsequent violations for the same
+        // track pointed at its current path instead of the stale audit path.
+        if (track && applyResult?.updatedTrack) {
+          trackMap.set(violation.trackId, applyResult.updatedTrack);
+        } else if (track && applyResult?.renamedPath) {
+          trackMap.set(violation.trackId, {
+            ...track,
+            id: applyResult.renamedPath,
+            filePath: applyResult.renamedPath,
+          });
         }
         appliedCount++;
       } catch (err: any) {

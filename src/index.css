@@ -16,19 +16,71 @@
     --input: 40 15% 88%;
     --muted: 40 20% 94%;
     --muted-foreground: 150 5% 45%;
+    --popover: 40 30% 98%;
+    --popover-foreground: 150 10% 15%;
     --primary: 160 84% 39%;
     --primary-foreground: 0 0% 100%;
     --radius: 0.75rem;
     --ring: 160 84% 39%;
     --secondary: 40 25% 93%;
     --secondary-foreground: 150 10% 25%;
+    --theme-shadow: 40 20% 30%;
+    color-scheme: light;
+  }
+
+  :root[data-theme='glass'] {
+    --accent: 161 62% 28%;
+    --accent-foreground: 158 76% 92%;
+    --background: 220 24% 10%;
+    --border: 214 20% 30%;
+    --card: 220 21% 15%;
+    --card-foreground: 210 24% 96%;
+    --destructive: 0 72% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --foreground: 210 24% 96%;
+    --input: 215 20% 27%;
+    --muted: 220 18% 19%;
+    --muted-foreground: 215 12% 70%;
+    --popover: 220 22% 17%;
+    --popover-foreground: 210 24% 96%;
+    --primary: 160 76% 48%;
+    --primary-foreground: 220 28% 9%;
+    --radius: 0.9rem;
+    --ring: 160 76% 48%;
+    --secondary: 218 18% 23%;
+    --secondary-foreground: 210 24% 92%;
+    --theme-shadow: 220 45% 4%;
+    color-scheme: dark;
   }
 
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+    transition: background-color 180ms ease, color 180ms ease;
   }
+}
+
+/* Menus stay opaque and tactile in Cream. Glass adds translucency only when
+   the Glass theme is selected, so a dropdown never leaks the wrong aesthetic. */
+.theme-popover {
+  background-color: hsl(var(--popover));
+  box-shadow: 0 16px 36px hsl(var(--theme-shadow) / 0.16);
+}
+
+:root[data-theme='cream'] .theme-popover {
+  background-color: hsl(var(--popover));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  opacity: 1;
+}
+
+:root[data-theme='glass'] .theme-popover {
+  background-color: hsl(var(--popover) / 0.82);
+  border-color: hsl(var(--border) / 0.82);
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  box-shadow: 0 18px 42px hsl(var(--theme-shadow) / 0.45), inset 0 1px 0 hsl(0 0% 100% / 0.08);
 }
 
 /* Custom scrollbars */
