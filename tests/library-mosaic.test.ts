@@ -7,6 +7,8 @@ import {
   formatDuration,
   formatTotalPlaytime,
   filterTracks,
+  getTrackMetadataIssues,
+  summarizeMetadataIssues,
 } from '../src/utils/library-utils';
 
 const TEST_TRACKS: Track[] = [
@@ -148,5 +150,36 @@ describe('Hierarchical Mosaic Library Utilities', () => {
     expect(artists.length).toBe(1);
     expect(artists[0].artistName).toBe('Pink Floyd');
     expect(artists[0].albums.length).toBe(2);
+  });
+
+  it('identifies missing and invalid metadata for collection indicators', () => {
+    const healthyTrack = TEST_TRACKS[0];
+    expect(getTrackMetadataIssues(healthyTrack)).toEqual([]);
+
+    const needsAttention: Track = {
+      ...healthyTrack,
+      id: 'needs-attention',
+      artist: 'Unknown Artist',
+      album: '',
+      trackNumber: 4,
+      totalTracks: 3,
+      isCorrupt: true,
+    };
+
+    expect(getTrackMetadataIssues(needsAttention)).toEqual([
+      'Unreadable metadata',
+      'Missing artist',
+      'Missing album',
+      'Invalid track count',
+    ]);
+
+    const summary = summarizeMetadataIssues([healthyTrack, needsAttention]);
+    expect(summary.affectedTracks).toEqual([needsAttention]);
+    expect(summary.issueTypes).toEqual([
+      'Unreadable metadata',
+      'Missing artist',
+      'Missing album',
+      'Invalid track count',
+    ]);
   });
 });

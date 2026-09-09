@@ -106,6 +106,7 @@ export class LibraryDatabaseService {
         artist TEXT NOT NULL,
         album TEXT NOT NULL,
         album_artist TEXT,
+        producer TEXT,
         track_number INTEGER,
         total_tracks INTEGER,
         disc_number INTEGER,
@@ -142,6 +143,11 @@ export class LibraryDatabaseService {
     } catch {
       // Column already exists
     }
+    try {
+      this.db.exec('ALTER TABLE tracks ADD COLUMN producer TEXT;');
+    } catch {
+      // Column already exists
+    }
   }
 
   /** Column list shared by the row-returning queries, so they cannot drift. */
@@ -152,6 +158,7 @@ export class LibraryDatabaseService {
           artist,
           album,
           album_artist as albumArtist,
+          producer,
           track_number as trackNumber,
           total_tracks as totalTracks,
           disc_number as discNumber,
@@ -176,6 +183,7 @@ export class LibraryDatabaseService {
       artist: r.artist,
       album: r.album,
       albumArtist: r.albumArtist || undefined,
+      producer: r.producer || undefined,
       trackNumber: r.trackNumber !== null && r.trackNumber !== undefined ? Number(r.trackNumber) : undefined,
       totalTracks: r.totalTracks !== null && r.totalTracks !== undefined ? Number(r.totalTracks) : undefined,
       discNumber: r.discNumber !== null && r.discNumber !== undefined ? Number(r.discNumber) : undefined,
@@ -237,13 +245,13 @@ export class LibraryDatabaseService {
   /** Upsert statement shared by the single and batch writers. */
   private static readonly UPSERT_SQL = `
         INSERT INTO tracks (
-          id, file_path, title, artist, album, album_artist,
+          id, file_path, title, artist, album, album_artist, producer,
           track_number, total_tracks, disc_number, total_discs,
           year, genre, duration, bitrate, sample_rate,
           bits_per_sample, codec,
           format, file_size, mtime, is_corrupt, updated_at
         ) VALUES (
-          ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, ?,
           ?, ?, ?, ?,
           ?, ?, ?, ?, ?,
           ?, ?,
@@ -255,6 +263,7 @@ export class LibraryDatabaseService {
           artist = excluded.artist,
           album = excluded.album,
           album_artist = excluded.album_artist,
+          producer = excluded.producer,
           track_number = excluded.track_number,
           total_tracks = excluded.total_tracks,
           disc_number = excluded.disc_number,
@@ -281,6 +290,7 @@ export class LibraryDatabaseService {
       t.artist,
       t.album,
       t.albumArtist ?? null,
+      t.producer ?? null,
       t.trackNumber ?? null,
       t.totalTracks ?? null,
       t.discNumber ?? null,

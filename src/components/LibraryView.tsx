@@ -21,6 +21,12 @@ interface LibraryViewProps {
   onPlayNext?: (tracks: Track[]) => void;
   onAddToQueue?: (tracks: Track[]) => void;
   onEditTags?: (tracks: Track[]) => void;
+  onChangeCover?: (
+    tracks: Track[],
+    scope: 'artist' | 'album',
+    name: string,
+    currentArtwork?: Track['picture']
+  ) => void;
   onAddToSync?: (scope: 'all' | 'playlists' | 'albums', names?: string[], tracks?: Track[]) => void;
   onExportPlaylist?: (name: string, tracks: Track[]) => void;
   onRevealInExplorer?: (filePath: string) => void;
@@ -44,6 +50,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   onPlayNext,
   onAddToQueue,
   onEditTags,
+  onChangeCover,
   onAddToSync,
   onExportPlaylist,
   onRevealInExplorer,
@@ -87,6 +94,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             onPlayNext={onPlayNext}
             onAddToQueue={onAddToQueue}
             onEditTags={onEditTags}
+            onChangeCover={onChangeCover}
             onAddToSync={onAddToSync}
             onExportPlaylist={onExportPlaylist}
             onRevealInExplorer={onRevealInExplorer}

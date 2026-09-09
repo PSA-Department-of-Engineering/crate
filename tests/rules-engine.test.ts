@@ -181,5 +181,49 @@ describe('Rules Engine Core', () => {
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0].error).toContain('Permission denied');
     });
+
+    it('passes a renamed track path to later violations for the same track', async () => {
+      const renamedTrack: Track = {
+        ...mockTrack1,
+        id: 'C:/Music/Artist/Album/01. Song.mp3',
+        filePath: 'C:/Music/Artist/Album/01. Song.mp3',
+      };
+      const violations: RuleViolation[] = [
+        {
+          id: 'first-rename',
+          ruleId: 'first-rename',
+          ruleName: 'First rename',
+          category: 'filename',
+          trackId: mockTrack1.id,
+          filePath: mockTrack1.filePath,
+          currentValue: '1. Song.mp3',
+          proposedValue: '01. Song.mp3',
+          proposedRenamePath: renamedTrack.filePath,
+          reason: 'Needs padding',
+        },
+        {
+          id: 'second-rename',
+          ruleId: 'second-rename',
+          ruleName: 'Second rename',
+          category: 'structure',
+          trackId: mockTrack1.id,
+          filePath: mockTrack1.filePath,
+          currentValue: 'old path',
+          proposedValue: 'new path',
+          reason: 'Needs organization',
+        },
+      ];
+      const seenPaths: string[] = [];
+
+      const result = await engine.executeBatch(violations, [mockTrack1], {
+        applyViolation: async (_violation, track) => {
+          seenPaths.push(track.filePath);
+          return seenPaths.length === 1 ? { updatedTrack: renamedTrack } : undefined;
+        },
+      });
+
+      expect(result.success).toBe(true);
+      expect(seenPaths).toEqual([mockTrack1.filePath, renamedTrack.filePath]);
+    });
   });
 });

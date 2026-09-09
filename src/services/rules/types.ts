@@ -24,6 +24,11 @@ export interface RuleContext {
   discoveredCompanionFileSizes?: Record<string, number>;
 }
 
+export interface RuleApplyResult {
+  updatedTrack?: Track;
+  renamedPath?: string;
+}
+
 export interface Rule {
   id: string;
   name: string;
@@ -34,7 +39,7 @@ export interface Rule {
     track: Track,
     violation: RuleViolation,
     context?: RuleContext
-  ) => Promise<{ updatedTrack?: Track; renamedPath?: string }>;
+  ) => Promise<RuleApplyResult>;
 }
 
 export interface RulePreset {

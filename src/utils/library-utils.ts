@@ -1,5 +1,86 @@
 import { Track, AlbumGroup, ArtistGroup, EmbeddedArtwork } from '../models/types';
 
+const UNKNOWN_METADATA_VALUES = new Set(['unknown artist', 'unknown album', 'unknown title']);
+
+function isMissingMetadataValue(value: string | undefined): boolean {
+  const normalized = value?.trim().toLowerCase();
+  return !normalized || UNKNOWN_METADATA_VALUES.has(normalized);
+}
+
+/**
+ * Returns the user-fixable metadata problems currently represented by a track.
+ *
+ * The scanner preserves fallback values such as "Unknown Artist" and marks
+ * unreadable files with `isCorrupt`, so the library can surface these problems
+ * without making another filesystem read during rendering.
+ */
+export function getTrackMetadataIssues(track: Track): string[] {
+  const issues: string[] = [];
+
+  if (track.isCorrupt) {
+    issues.push('Unreadable metadata');
+  }
+  if (isMissingMetadataValue(track.title)) {
+    issues.push('Missing title');
+  }
+  if (isMissingMetadataValue(track.artist)) {
+    issues.push('Missing artist');
+  }
+  if (isMissingMetadataValue(track.album)) {
+    issues.push('Missing album');
+  }
+
+  const trackNumber = track.trackNumber;
+  const hasValidTrackNumber =
+    typeof trackNumber === 'number' &&
+    Number.isFinite(trackNumber) &&
+    trackNumber > 0;
+  if (!hasValidTrackNumber) {
+    issues.push('Missing track number');
+  } else if (
+    track.totalTracks !== undefined &&
+    (!Number.isFinite(track.totalTracks) || track.totalTracks < 1 || trackNumber > track.totalTracks)
+  ) {
+    issues.push('Invalid track count');
+  }
+
+  if (
+    track.discNumber !== undefined &&
+    (!Number.isFinite(track.discNumber) || track.discNumber < 1)
+  ) {
+    issues.push('Invalid disc number');
+  } else if (
+    track.totalDiscs !== undefined &&
+    (!Number.isFinite(track.totalDiscs) ||
+      track.totalDiscs < 1 ||
+      (track.discNumber !== undefined && track.discNumber > track.totalDiscs))
+  ) {
+    issues.push('Invalid disc count');
+  }
+
+  return issues;
+}
+
+export interface MetadataIssueSummary {
+  affectedTracks: Track[];
+  issueTypes: string[];
+}
+
+/** Summarizes metadata issues for collection cards without duplicating rules in the UI. */
+export function summarizeMetadataIssues(tracks: Track[]): MetadataIssueSummary {
+  const issueTypes = new Set<string>();
+  const affectedTracks = tracks.filter((track) => {
+    const issues = getTrackMetadataIssues(track);
+    issues.forEach((issue) => issueTypes.add(issue));
+    return issues.length > 0;
+  });
+
+  return {
+    affectedTracks,
+    issueTypes: Array.from(issueTypes),
+  };
+}
+
 export function formatDuration(seconds: number): string {
   if (!seconds || isNaN(seconds)) return '0:00';
   const m = Math.floor(seconds / 60);

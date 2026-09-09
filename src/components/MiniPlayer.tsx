@@ -196,7 +196,7 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
 
       {/* Right: Volume & Sink Selector & Undock */}
       <div className="flex items-center justify-end gap-3 w-1/4 min-w-[200px]">
-        {/* Output Sink Liquid Glass Selector */}
+        {/* Output sink selector follows the active theme. */}
         <div className="relative" ref={sinkDropdownRef}>
           <button
             onClick={() => setIsSinkMenuOpen(!isSinkMenuOpen)}
@@ -207,9 +207,9 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({
             <Speaker className="w-4 h-4" />
           </button>
 
-          {/* Liquid Glass Dropdown Menu */}
+          {/* Theme-aware dropdown menu */}
           {isSinkMenuOpen && (
-            <div className="absolute right-0 bottom-full mb-2 min-w-[210px] max-w-[280px] bg-popover/95 backdrop-blur-md text-popover-foreground border border-border rounded-xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 select-none text-xs">
+            <div className="theme-popover absolute right-0 bottom-full mb-2 min-w-[210px] max-w-[280px] bg-popover text-popover-foreground border border-border rounded-xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 select-none text-xs">
               <div className="px-3 py-1.5 border-b border-border/60 mb-1 flex flex-col">
                 <span className="font-bold text-foreground">Audio Output Devices</span>
                 <span className="text-[10px] text-muted-foreground">Select speaker or headphone destination</span>

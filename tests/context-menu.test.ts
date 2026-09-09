@@ -51,6 +51,7 @@ describe('Responsive Context Menu Item Generators', () => {
       onPlayNext: vi.fn(),
       onAddToQueue: vi.fn(),
       onEditTags: vi.fn(),
+      onChangeCover: vi.fn(),
       onAddToSync: vi.fn(),
       onRevealInExplorer: vi.fn(),
     };
@@ -73,6 +74,16 @@ describe('Responsive Context Menu Item Generators', () => {
     editItem?.onClick();
     expect(handlers.onEditTags).toHaveBeenCalledWith(SAMPLE_ARTIST.tracks);
 
+    const changeCoverItem = items.find((i) => i.id === 'change-artist-cover');
+    expect(changeCoverItem).toBeDefined();
+    changeCoverItem?.onClick();
+    expect(handlers.onChangeCover).toHaveBeenCalledWith(
+      SAMPLE_ARTIST.tracks,
+      'artist',
+      'Pink Floyd',
+      undefined
+    );
+
     const syncItem = items.find((i) => i.id === 'sync-artist');
     expect(syncItem).toBeDefined();
     syncItem?.onClick();
@@ -86,6 +97,7 @@ describe('Responsive Context Menu Item Generators', () => {
       onPlayNext: vi.fn(),
       onAddToQueue: vi.fn(),
       onEditTags: vi.fn(),
+      onChangeCover: vi.fn(),
       onAddToSync: vi.fn(),
       onExportPlaylist: vi.fn(),
       onRevealInExplorer: vi.fn(),
@@ -108,6 +120,16 @@ describe('Responsive Context Menu Item Generators', () => {
     expect(syncItem).toBeDefined();
     syncItem?.onClick();
     expect(handlers.onAddToSync).toHaveBeenCalledWith('albums', ['The Wall'], SAMPLE_ALBUM.tracks);
+
+    const changeCoverItem = items.find((i) => i.id === 'change-album-cover');
+    expect(changeCoverItem).toBeDefined();
+    changeCoverItem?.onClick();
+    expect(handlers.onChangeCover).toHaveBeenCalledWith(
+      SAMPLE_ALBUM.tracks,
+      'album',
+      'The Wall',
+      undefined
+    );
   });
 
   it('generates responsive action items for Song / Track selection', () => {

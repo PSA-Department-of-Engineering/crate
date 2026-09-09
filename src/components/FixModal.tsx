@@ -2,20 +2,22 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, Wrench, ArrowRight, CheckCircle2, AlertCircle, RefreshCw, Layers } from 'lucide-react';
 import { Track } from '../models/types';
 import { defaultRulesEngine, defaultRuleRegistry } from '../services/rules';
-import { RuleViolation, BatchProgress } from '../services/rules/types';
+import { RuleViolation, BatchProgress, RuleApplyResult } from '../services/rules/types';
 
 interface FixModalProps {
   isOpen: boolean;
   onClose: () => void;
   tracks: Track[];
+  libraryRoot?: string | null;
   onRescanLibrary?: () => Promise<void>;
-  onApplyViolation?: (violation: RuleViolation, track: Track) => Promise<void>;
+  onApplyViolation?: (violation: RuleViolation, track: Track) => Promise<RuleApplyResult | void>;
 }
 
 export const FixModal: React.FC<FixModalProps> = ({
   isOpen,
   onClose,
   tracks,
+  libraryRoot,
   onRescanLibrary,
   onApplyViolation,
 }) => {
@@ -31,8 +33,8 @@ export const FixModal: React.FC<FixModalProps> = ({
   // Run audit against selected preset
   const auditResult = useMemo(() => {
     if (!isOpen) return null;
-    return defaultRulesEngine.audit(tracks, selectedPreset);
-  }, [isOpen, tracks, selectedPreset, fixDone]);
+    return defaultRulesEngine.audit(tracks, selectedPreset, { libraryRoot: libraryRoot || undefined });
+  }, [isOpen, tracks, selectedPreset, fixDone, libraryRoot]);
 
   const violations = auditResult?.violations || [];
 

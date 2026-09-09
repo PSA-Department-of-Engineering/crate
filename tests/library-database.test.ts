@@ -49,6 +49,7 @@ describe('Embedded SQLite Library Database & Incremental Sync', () => {
         artist: 'Artist A',
         album: 'Album 1',
         albumArtist: 'Artist A',
+        producer: 'Producer A',
         trackNumber: 1,
         totalTracks: 10,
         discNumber: 1,
@@ -82,6 +83,7 @@ describe('Embedded SQLite Library Database & Incremental Sync', () => {
       expect(allTracks.length).toBe(2);
       expect(allTracks[0].artist).toBe('Artist A');
       expect(allTracks[1].artist).toBe('Artist B');
+      expect(allTracks[0].producer).toBe('Producer A');
 
       let stats = dbService.getStats();
       expect(stats.trackCount).toBe(2);

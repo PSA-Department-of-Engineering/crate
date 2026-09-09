@@ -29,12 +29,20 @@ const bridge: CrateBridge = {
     return await ipcRenderer.invoke('metadata:get-artwork', filePath);
   },
 
+  fetchArtworkFromUrl: async (url: string): Promise<EmbeddedArtwork> => {
+    return await ipcRenderer.invoke('artwork:fetch-url', url);
+  },
+
   saveTrackTags: async (filePath: string, tags: TagUpdates): Promise<Track> => {
     return await ipcRenderer.invoke('tags:save', { filePath, tags });
   },
 
   batchSaveTags: async (filePaths: string[], tags: TagUpdates): Promise<Track[]> => {
     return await ipcRenderer.invoke('tags:batch-save', { filePaths, tags });
+  },
+
+  moveTrackFile: async (filePath: string, destinationPath: string, libraryRoot: string): Promise<Track> => {
+    return await ipcRenderer.invoke('library:move-track', { filePath, destinationPath, libraryRoot });
   },
 
   getVolumes: async (): Promise<VolumeInfo[]> => {

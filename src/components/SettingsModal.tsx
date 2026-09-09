@@ -12,10 +12,13 @@ import {
   Loader2,
   Palette,
 } from 'lucide-react';
+import { ThemeName } from '../theme';
 
 export interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  theme: ThemeName;
+  onThemeChange: (theme: ThemeName) => void;
   libraryPath: string | null;
   onChangeLibraryFolder: () => void;
   isScanning?: boolean;
@@ -24,11 +27,12 @@ export interface SettingsModalProps {
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
+  theme,
+  onThemeChange,
   libraryPath,
   onChangeLibraryFolder,
   isScanning = false,
 }) => {
-  const [theme, setTheme] = useState<'cream' | 'glass'>('cream');
   const [spotifySecret, setSpotifySecret] = useState<string>('');
   const [showSecret, setShowSecret] = useState<boolean>(false);
   const [isSaved, setIsSaved] = useState<boolean>(false);
@@ -57,14 +61,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           if (isMounted && settings?.spotifySecret) {
             setSpotifySecret(settings.spotifySecret);
             setIsSaved(true);
-            return;
           }
         }
         if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-          const savedTheme = localStorage.getItem('crate_theme') as 'cream' | 'glass' | null;
-          if (isMounted && savedTheme && (savedTheme === 'cream' || savedTheme === 'glass')) {
-            setTheme(savedTheme);
-          }
           const localSecret = localStorage.getItem('crate_spotify_secret');
           if (isMounted && localSecret) {
             setSpotifySecret(localSecret);
@@ -186,7 +185,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <h3 className="text-sm font-semibold text-foreground">Appearance & Theme</h3>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Select your interface aesthetic. (Scaffold preview - themes in development).
+              Select the surface treatment used across the app, including menus and dialogs.
             </p>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border border-border/80 bg-background/60">
@@ -207,10 +206,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   type="button"
                   role="radio"
                   aria-checked={theme === 'cream'}
-                  onClick={() => {
-                    setTheme('cream');
-                    try { localStorage.setItem('crate_theme', 'cream'); } catch {}
-                  }}
+                  onClick={() => onThemeChange('cream')}
                   className={`relative z-10 px-4 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
                     theme === 'cream'
                       ? 'bg-card text-foreground shadow-sm'
@@ -223,10 +219,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   type="button"
                   role="radio"
                   aria-checked={theme === 'glass'}
-                  onClick={() => {
-                    setTheme('glass');
-                    try { localStorage.setItem('crate_theme', 'glass'); } catch {}
-                  }}
+                  onClick={() => onThemeChange('glass')}
                   className={`relative z-10 px-4 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
                     theme === 'glass'
                       ? 'bg-card text-foreground shadow-sm'
