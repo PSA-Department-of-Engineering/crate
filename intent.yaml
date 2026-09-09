@@ -154,6 +154,19 @@ INT-TAG-006:
   criticality: critical
   rationale: "Guarantees complete user privacy and air-gapped offline operation."
 
+INT-TAG-007:
+  version: 1.0.0
+  status: active
+  statement: "The metadata tag service writes track metadata and cover art to WAV files as an embedded ID3v2 tag in an 'id3 ' RIFF chunk, replacing any existing tag chunk in place and copying every other chunk, including the audio 'data', through byte-for-byte."
+  derived_from:
+    - REQ-TAG-001
+  test:
+    scope: unit
+    component: TagService
+    type: contract
+  criticality: high
+  rationale: "WAV masters are a supported source (INT-LIB-001); without a writer, tag edits on a WAV were silently discarded. Embedding ID3v2 keeps the edits readable by the library scanner and carries them onto the car FLAC when sync transcodes with -map_metadata."
+
 INT-ORG-001:
   version: 1.0.0
   status: active

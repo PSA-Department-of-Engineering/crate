@@ -41,6 +41,12 @@ function toArtworkUri(bytes: Buffer, mime: string): EmbeddedArtwork {
   return { format: mime, data: `data:${mime};base64,${bytes.toString('base64')}` };
 }
 
+/** Decodes an artwork payload that may be a `data:` URI or a bare base64 string. */
+function dataUriToBuffer(data: string): Buffer {
+  const base64 = data.startsWith('data:') ? data.slice(data.indexOf(',') + 1) : data;
+  return Buffer.from(base64, 'base64');
+}
+
 export class AudioMetadataService {
   /**
    * Reads metadata from an audio file (.mp3 or .flac) and returns a Track object.
@@ -159,7 +165,8 @@ export class AudioMetadataService {
   }
 
   /**
-   * Updates tags on an MP3 or FLAC file on disk without modifying audio stream data.
+   * Updates tags on an MP3, FLAC, or WAV file on disk without modifying audio
+   * stream data. Any other extension throws rather than silently doing nothing.
    */
   async writeTrackTags(filePath: string, updates: TagUpdates): Promise<Track> {
     const ext = path.extname(filePath).toLowerCase();
@@ -168,6 +175,10 @@ export class AudioMetadataService {
       await this.writeMp3Tags(filePath, updates);
     } else if (ext === '.flac') {
       await this.writeFlacTags(filePath, updates);
+    } else if (ext === '.wav') {
+      await this.writeWavTags(filePath, updates);
+    } else {
+      throw new Error(`Tag editing is not supported for ${ext || 'this file type'}`);
     }
 
     // Re-read file to return updated Track model
@@ -427,5 +438,107 @@ export class AudioMetadataService {
 
     const finalBuffer = Buffer.concat(outBuffers);
     await fs.promises.writeFile(filePath, finalBuffer);
+  }
+
+  /**
+   * Writes track metadata and cover art to a WAV file as an embedded ID3v2 tag
+   * in an 'id3 ' RIFF chunk (INT-TAG-007).
+   *
+   * WAV has no native tag model that carries album artist, disc numbers, or
+   * cover art, but the RIFF container permits an application chunk holding a
+   * standard ID3v2 tag, and that is what music-metadata reads back and what
+   * ffmpeg copies with -map_metadata during the car-sync transcode. Any
+   * existing 'id3 '/'ID3 ' chunk is replaced in place; every other chunk,
+   * including the audio 'data', is copied through unchanged.
+   */
+  private async writeWavTags(filePath: string, updates: TagUpdates): Promise<void> {
+    const buf = await fs.promises.readFile(filePath);
+    if (buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE') {
+      throw new Error('Not a valid WAV file: missing RIFF/WAVE header');
+    }
+
+    // Parse the chunk list after the 12-byte RIFF header. RIFF chunks are
+    // word-aligned: an odd payload length is followed by one pad byte.
+    type RiffChunk = { id: string; data: Buffer };
+    const chunks: RiffChunk[] = [];
+    let offset = 12;
+    while (offset + 8 <= buf.length) {
+      const id = buf.toString('ascii', offset, offset + 4);
+      const size = buf.readUInt32LE(offset + 4);
+      const dataStart = offset + 8;
+      const dataEnd = Math.min(dataStart + size, buf.length);
+      chunks.push({ id, data: buf.subarray(dataStart, dataEnd) });
+      offset = dataStart + size + (size % 2);
+    }
+
+    // Merge the requested changes onto any tag already embedded in the file.
+    const existingId3 = chunks.find(c => c.id.toLowerCase() === 'id3 ');
+    const base: NodeID3.Tags = existingId3 ? (NodeID3.read(existingId3.data) || {}) : {};
+    const tags: NodeID3.Tags = { ...base };
+
+    if (updates.title !== undefined) tags.title = updates.title;
+    if (updates.artist !== undefined) tags.artist = updates.artist;
+    if (updates.album !== undefined) tags.album = updates.album;
+    if (updates.albumArtist !== undefined) tags.performerInfo = updates.albumArtist;
+    if (updates.genre !== undefined) tags.genre = updates.genre;
+    if (updates.year !== undefined) tags.year = updates.year ? `${updates.year}` : undefined;
+
+    if (updates.trackNumber !== undefined || updates.totalTracks !== undefined) {
+      const no = updates.trackNumber ?? (base.trackNumber ? parseInt(base.trackNumber, 10) : undefined);
+      const total = updates.totalTracks;
+      tags.trackNumber = no ? (total ? `${no}/${total}` : `${no}`) : undefined;
+    }
+    if (updates.discNumber !== undefined || updates.totalDiscs !== undefined) {
+      const no = updates.discNumber ?? (base.partOfSet ? parseInt(base.partOfSet, 10) : undefined);
+      const total = updates.totalDiscs;
+      tags.partOfSet = no ? (total ? `${no}/${total}` : `${no}`) : undefined;
+    }
+    if (updates.picture !== undefined) {
+      if (updates.picture === null) {
+        delete tags.image;
+      } else {
+        tags.image = {
+          mime: updates.picture.format || 'image/jpeg',
+          type: { id: 3, name: 'front cover' },
+          description: 'Cover',
+          imageBuffer: dataUriToBuffer(updates.picture.data),
+        };
+      }
+    }
+
+    const id3Buffer = NodeID3.create(tags) as Buffer;
+
+    // Rebuild the chunk list: replace the first 'id3 ' chunk, drop any
+    // duplicates, append one if the file had none.
+    const rebuilt: RiffChunk[] = [];
+    let placed = false;
+    for (const c of chunks) {
+      if (c.id.toLowerCase() === 'id3 ') {
+        if (!placed) {
+          rebuilt.push({ id: 'id3 ', data: id3Buffer });
+          placed = true;
+        }
+      } else {
+        rebuilt.push(c);
+      }
+    }
+    if (!placed) rebuilt.push({ id: 'id3 ', data: id3Buffer });
+
+    // Serialise: 'RIFF' <bodyLength> 'WAVE' <chunk>...
+    const body: Buffer[] = [Buffer.from('WAVE', 'ascii')];
+    for (const c of rebuilt) {
+      const header = Buffer.alloc(8);
+      header.write(c.id.padEnd(4).slice(0, 4), 0, 'ascii');
+      header.writeUInt32LE(c.data.length, 4);
+      body.push(header, c.data);
+      if (c.data.length % 2 === 1) body.push(Buffer.from([0x00]));
+    }
+    const bodyBuf = Buffer.concat(body);
+
+    const riffHeader = Buffer.alloc(8);
+    riffHeader.write('RIFF', 0, 'ascii');
+    riffHeader.writeUInt32LE(bodyBuf.length, 4);
+
+    await fs.promises.writeFile(filePath, Buffer.concat([riffHeader, bodyBuf]));
   }
 }

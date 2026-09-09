@@ -1,4 +1,4 @@
-import { describe, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { intent } from './intent-helper';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -201,6 +201,95 @@ describe('Audio Metadata & Tagging Service', () => {
     await fs.promises.rm(tempDir, { recursive: true, force: true });
     await fs.promises.rm(sidecarDir, { recursive: true, force: true });
     await fs.promises.rm(badArtDir, { recursive: true, force: true });
+  });
+
+  intent('INT-TAG-007', 'Tag service writes an embedded id3 chunk to WAV and preserves the audio data chunk', async () => {
+    const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-test-wav-'));
+    const wavPath = path.join(tempDir, 'master.wav');
+
+    // A minimal but valid RIFF/WAVE file: fmt chunk + a data chunk with known bytes.
+    const pcm = Buffer.from([0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88]);
+    const fmt = Buffer.alloc(16);
+    fmt.writeUInt16LE(1, 0);       // PCM
+    fmt.writeUInt16LE(2, 2);       // stereo
+    fmt.writeUInt32LE(44100, 4);
+    fmt.writeUInt32LE(176400, 8);
+    fmt.writeUInt16LE(4, 12);
+    fmt.writeUInt16LE(16, 14);
+    const chunk = (id: string, data: Buffer) => {
+      const h = Buffer.alloc(8);
+      h.write(id, 0, 'ascii');
+      h.writeUInt32LE(data.length, 4);
+      return Buffer.concat([h, data]);
+    };
+    const body = Buffer.concat([Buffer.from('WAVE'), chunk('fmt ', fmt), chunk('data', pcm)]);
+    const riff = Buffer.alloc(8);
+    riff.write('RIFF', 0, 'ascii');
+    riff.writeUInt32LE(body.length, 4);
+    await fs.promises.writeFile(wavPath, Buffer.concat([riff, body]));
+
+    const pngUri =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+    const updated = await metadataService.writeTrackTags(wavPath, {
+      title: 'Night Drive',
+      artist: 'Producer',
+      album: 'Masters',
+      albumArtist: 'Producer',
+      genre: 'Electronic',
+      year: 2024,
+      trackNumber: 3,
+      discNumber: 1,
+      picture: { format: 'image/png', data: pngUri },
+    });
+    expect(updated.format).toBe('wav');
+    expect(updated.title).toBe('Night Drive');
+    expect(updated.artist).toBe('Producer');
+
+    // Persisted to disk and re-read by the scanner path
+    const reread = await metadataService.readTrack(wavPath, { skipCovers: false });
+    expect(reread.album).toBe('Masters');
+    expect(reread.albumArtist).toBe('Producer');
+    expect(reread.year).toBe(2024);
+    expect(reread.trackNumber).toBe(3);
+    expect(reread.picture?.format).toBe('image/png');
+
+    // The audio 'data' chunk is untouched, and exactly one 'id3 ' chunk exists
+    const after = await fs.promises.readFile(wavPath);
+    expect(after.toString('ascii', 0, 4)).toBe('RIFF');
+    expect(after.readUInt32LE(4)).toBe(after.length - 8);
+    const found: Record<string, Buffer[]> = {};
+    let off = 12;
+    while (off + 8 <= after.length) {
+      const id = after.toString('ascii', off, off + 4);
+      const size = after.readUInt32LE(off + 4);
+      (found[id] ||= []).push(after.subarray(off + 8, off + 8 + size));
+      off += 8 + size + (size % 2);
+    }
+    expect(found['data']?.[0].equals(pcm)).toBe(true);
+    expect(found['id3 ']?.length).toBe(1);
+
+    // Second write updates in place without stacking another id3 chunk
+    await metadataService.writeTrackTags(wavPath, { title: 'Night Drive (Reprise)' });
+    const after2 = await fs.promises.readFile(wavPath);
+    let idCount = 0;
+    let o2 = 12;
+    while (o2 + 8 <= after2.length) {
+      const id = after2.toString('ascii', o2, o2 + 4);
+      const size = after2.readUInt32LE(o2 + 4);
+      if (id.toLowerCase() === 'id3 ') idCount++;
+      o2 += 8 + size + (size % 2);
+    }
+    expect(idCount).toBe(1);
+    expect((await metadataService.readTrack(wavPath)).title).toBe('Night Drive (Reprise)');
+
+    await fs.promises.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('writeTrackTags refuses a format it has no writer for instead of silently no-opping', async () => {
+    await expect(
+      metadataService.writeTrackTags(path.join(os.tmpdir(), 'whatever.aiff'), { title: 'x' })
+    ).rejects.toThrow(/not supported/i);
   });
 
   intent('INT-TAG-006', 'Network boundary invariant ensures 100% offline execution without telemetry', async () => {

@@ -344,7 +344,7 @@ export const TagEditor: React.FC<TagEditorProps> = ({
             )}
           </div>
           <p className="text-[11px] text-muted-foreground mt-3 text-center">
-            Embedded directly into APIC frames (MP3) or PICTURE blocks (FLAC).
+            Embedded into APIC frames (MP3), PICTURE blocks (FLAC), or an id3 chunk (WAV).
           </p>
         </div>
 
