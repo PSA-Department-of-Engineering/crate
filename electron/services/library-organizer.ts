@@ -6,6 +6,12 @@ export interface MovedLibraryFile {
   destinationPath: string;
 }
 
+export interface LibraryMoveRequest {
+  filePath: string;
+  destinationPath: string;
+  libraryRoot?: string;
+}
+
 function isPathInsideRoot(candidate: string, root: string): boolean {
   const relative = path.relative(root, candidate);
   return relative !== '' && !relative.startsWith('..' + path.sep) && !path.isAbsolute(relative);
@@ -17,6 +23,43 @@ function samePath(left: string, right: string): boolean {
   return process.platform === 'win32'
     ? normalizedLeft.toLowerCase() === normalizedRight.toLowerCase()
     : normalizedLeft === normalizedRight;
+}
+
+/**
+ * Validates the untrusted renderer payload while keeping the configured root
+ * as the only filesystem trust boundary. `libraryRoot` remains optional for
+ * compatibility with older renderers, but when present it must match the
+ * main-process setting.
+ */
+export function validateLibraryMoveRequest(value: unknown, configuredRoot: string): LibraryMoveRequest {
+  if (!configuredRoot.trim() || !value || typeof value !== 'object') {
+    throw new Error('Invalid library move request.');
+  }
+
+  const request = value as Record<string, unknown>;
+  if (
+    typeof request.filePath !== 'string' ||
+    !request.filePath.trim() ||
+    typeof request.destinationPath !== 'string' ||
+    !request.destinationPath.trim()
+  ) {
+    throw new Error('Invalid library move request.');
+  }
+
+  if (request.libraryRoot !== undefined) {
+    if (typeof request.libraryRoot !== 'string' || !request.libraryRoot.trim()) {
+      throw new Error('Invalid library move request.');
+    }
+    if (!samePath(request.libraryRoot, configuredRoot)) {
+      throw new Error('Library root does not match the configured library root.');
+    }
+  }
+
+  return {
+    filePath: request.filePath,
+    destinationPath: request.destinationPath,
+    libraryRoot: configuredRoot,
+  };
 }
 
 function isPathWithinRoot(candidate: string, root: string): boolean {

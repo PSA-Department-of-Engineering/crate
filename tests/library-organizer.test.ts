@@ -3,9 +3,35 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { intent } from './intent-helper';
-import { moveLibraryFile } from '../electron/services/library-organizer';
+import { moveLibraryFile, validateLibraryMoveRequest } from '../electron/services/library-organizer';
 
 describe('Managed library file moves', () => {
+  it('validates renderer move payloads against the configured library root', () => {
+    const configuredRoot = path.join(os.tmpdir(), 'crate-library');
+
+    expect(
+      validateLibraryMoveRequest(
+        { filePath: path.join(configuredRoot, 'song.mp3'), destinationPath: path.join(configuredRoot, 'Artist', 'song.mp3'), libraryRoot: configuredRoot },
+        configuredRoot
+      )
+    ).toMatchObject({
+      filePath: path.join(configuredRoot, 'song.mp3'),
+      destinationPath: path.join(configuredRoot, 'Artist', 'song.mp3'),
+      libraryRoot: configuredRoot,
+    });
+
+    expect(() =>
+      validateLibraryMoveRequest(
+        { filePath: path.join(configuredRoot, 'song.mp3'), destinationPath: path.join(configuredRoot, 'song.mp3'), libraryRoot: path.join(os.tmpdir(), 'attacker-root') },
+        configuredRoot
+      )
+    ).toThrow('does not match the configured library root');
+  });
+
+  it('rejects malformed renderer move payloads', () => {
+    expect(() => validateLibraryMoveRequest({ filePath: 42 }, 'C:/Music')).toThrow('Invalid library move request');
+  });
+
   it('creates missing Artist/Album folders and moves the file', async () => {
     const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-organizer-'));
     try {

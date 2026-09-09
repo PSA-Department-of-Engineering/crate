@@ -8,7 +8,7 @@ import { SyncManagerService } from './services/sync-manager';
 import { PlaylistExporterService } from './services/playlist-exporter';
 import { SettingsManagerService } from './services/settings-manager';
 import { fetchArtworkFromUrl } from './services/artwork-input';
-import { moveLibraryFile } from './services/library-organizer';
+import { moveLibraryFile, validateLibraryMoveRequest } from './services/library-organizer';
 
 import { TagUpdates, Track, Playlist, SyncPlan } from '../src/models/types';
 
@@ -232,12 +232,14 @@ ipcMain.handle('metadata:get-artwork', async (_event, filePath: string) => {
   return await metadataService.getArtwork(filePath);
 });
 
-ipcMain.handle('library:move-track', async (_event, data: {
-  filePath: string;
-  destinationPath: string;
-  libraryRoot: string;
-}) => {
-  const moved = await moveLibraryFile(data.filePath, data.destinationPath, data.libraryRoot);
+ipcMain.handle('library:move-track', async (_event, data: unknown) => {
+  const configuredLibraryRoot = await settingsManager.getLibraryPath();
+  if (!configuredLibraryRoot) {
+    throw new Error('No managed library root is configured.');
+  }
+
+  const request = validateLibraryMoveRequest(data, configuredLibraryRoot);
+  const moved = await moveLibraryFile(request.filePath, request.destinationPath, configuredLibraryRoot);
   const updated = await metadataService.readTrack(moved.destinationPath, { skipCovers: true });
 
   // The scanner uses file paths as track identities. Replace the old database
