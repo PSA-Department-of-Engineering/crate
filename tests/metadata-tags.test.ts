@@ -306,6 +306,9 @@ describe('Audio Metadata & Tagging Service', () => {
       const reread = await metadataService.readTrack(mp3Path);
       expect(reread.title).toBe('Producer Credit');
       expect(reread.producer).toBe('RicoWorld');
+
+      await metadataService.writeTrackTags(mp3Path, { producer: '' });
+      expect((await metadataService.readTrack(mp3Path)).producer).toBeUndefined();
     } finally {
       await fs.promises.rm(tempDir, { recursive: true, force: true });
     }

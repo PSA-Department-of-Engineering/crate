@@ -44,6 +44,28 @@ describe('Managed library file moves', () => {
     }
   });
 
+  it('rejects a destination routed through a symlink or junction', async () => {
+    const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-organizer-root-'));
+    const outside = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-organizer-outside-'));
+    try {
+      const source = path.join(root, 'incoming', 'song.mp3');
+      const linkedArtist = path.join(root, 'Artist');
+      const destination = path.join(linkedArtist, 'Album', '01 Song.mp3');
+      await fs.promises.mkdir(path.dirname(source), { recursive: true });
+      await fs.promises.writeFile(source, 'source audio');
+      await fs.promises.symlink(outside, linkedArtist, process.platform === 'win32' ? 'junction' : 'dir');
+
+      await expect(moveLibraryFile(source, destination, root)).rejects.toThrow(
+        /symbolic link or junction|resolves outside the managed library root/
+      );
+      await expect(fs.promises.readFile(source, 'utf8')).resolves.toBe('source audio');
+      await expect(fs.promises.access(path.join(outside, 'Album', '01 Song.mp3'))).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      await fs.promises.rm(root, { recursive: true, force: true });
+      await fs.promises.rm(outside, { recursive: true, force: true });
+    }
+  });
+
   intent('INT-ORG-004', 'Organization moves remain inside the selected library root', async () => {
     const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-organizer-'));
     try {

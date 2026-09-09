@@ -162,7 +162,10 @@ export const TagEditor: React.FC<TagEditorProps> = ({
     if (artist.trim()) tagUpdates.artist = artist.trim();
     if (album.trim()) tagUpdates.album = album.trim();
     if (albumArtist.trim()) tagUpdates.albumArtist = albumArtist.trim();
-    if (producer.trim()) tagUpdates.producer = producer.trim();
+    // A blank producer is an explicit clear for a single track. In batch mode
+    // an empty field means "leave each selected track unchanged" because the
+    // field may be blank when the selected tracks have different credits.
+    if (!isBatch || producer.trim()) tagUpdates.producer = producer.trim();
     if (year.trim()) {
       const y = parseInt(year.trim(), 10);
       if (!isNaN(y)) tagUpdates.year = y;
