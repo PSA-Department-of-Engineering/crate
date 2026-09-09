@@ -142,37 +142,65 @@ describe('Audio Metadata & Tagging Service', () => {
     }
   });
 
-  intent('INT-TAG-005', 'Artwork manager extracts embedded APIC / PICTURE blocks and updates image data', async () => {
-    // Embedded artwork manager test
+  intent('INT-TAG-005', 'Artwork manager prefers valid embedded front-cover art, rejects non-image payloads, and falls back to a sibling cover file', async () => {
+    // A real 1x1 PNG (valid magic bytes)
     const sampleBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
     const artworkUri = `data:image/png;base64,${sampleBase64}`;
 
     const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-test-art-'));
+    const bareMp3 = () => Buffer.concat([Buffer.from([0xFF, 0xFB, 0x90, 0x64]), Buffer.alloc(1024, 0)]);
+
+    // 1. Embed + read back embedded artwork
     const testMp3 = path.join(tempDir, 'art.mp3');
-    await fs.promises.writeFile(testMp3, Buffer.concat([Buffer.from([0xFF, 0xFB, 0x90, 0x64]), Buffer.alloc(1024, 0)]));
+    await fs.promises.writeFile(testMp3, bareMp3());
 
     const updated = await metadataService.writeTrackTags(testMp3, {
       title: 'Track with Art',
-      picture: {
-        format: 'image/png',
-        data: artworkUri,
-      },
+      picture: { format: 'image/png', data: artworkUri },
     });
-
     expect(updated.picture).toBeDefined();
     expect(updated.picture?.format).toBe('image/png');
 
-    // Default readTrack should skip artwork extraction for memory efficiency
+    // Default readTrack skips artwork extraction for memory efficiency
     const scannedTrack = await metadataService.readTrack(testMp3);
     expect(scannedTrack.picture).toBeUndefined();
 
-    // getArtwork should extract embedded artwork on demand
+    // getArtwork extracts embedded artwork on demand, typed from the bytes
     const onDemandArt = await metadataService.getArtwork(testMp3);
-    expect(onDemandArt).toBeDefined();
     expect(onDemandArt?.format).toBe('image/png');
     expect(onDemandArt?.data).toContain('base64');
 
+    // 2. A track with no embedded art falls back to a sibling cover file
+    const sidecarDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-test-sidecar-'));
+    const noArtMp3 = path.join(sidecarDir, 'plain.mp3');
+    await fs.promises.writeFile(noArtMp3, bareMp3());
+    const jpegBytes = Buffer.concat([
+      Buffer.from([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01]),
+      Buffer.alloc(64, 0),
+      Buffer.from([0xFF, 0xD9]),
+    ]);
+    await fs.promises.writeFile(path.join(sidecarDir, 'folder.jpg'), jpegBytes);
+
+    const sidecarArt = await metadataService.getArtwork(noArtMp3);
+    expect(sidecarArt?.format).toBe('image/jpeg');
+
+    // 3. An embedded payload that is not a decodable image is rejected (and with
+    //    no sidecar present, getArtwork returns null rather than garbage)
+    const badArtDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'crate-test-badart-'));
+    const badArtMp3 = path.join(badArtDir, 'bad.mp3');
+    await fs.promises.writeFile(badArtMp3, bareMp3());
+    await metadataService.writeTrackTags(badArtMp3, {
+      title: 'Broken Art',
+      picture: {
+        format: 'image/png',
+        data: `data:image/png;base64,${Buffer.from('this is not an image').toString('base64')}`,
+      },
+    });
+    expect(await metadataService.getArtwork(badArtMp3)).toBeNull();
+
     await fs.promises.rm(tempDir, { recursive: true, force: true });
+    await fs.promises.rm(sidecarDir, { recursive: true, force: true });
+    await fs.promises.rm(badArtDir, { recursive: true, force: true });
   });
 
   intent('INT-TAG-006', 'Network boundary invariant ensures 100% offline execution without telemetry', async () => {

@@ -4,6 +4,43 @@ import * as mm from 'music-metadata';
 import NodeID3 from 'node-id3';
 import { Track, TagUpdates, AudioFormat, EmbeddedArtwork } from '../../src/models/types';
 
+interface RawPicture {
+  data: Uint8Array;
+  format?: string;
+  type?: string;
+}
+
+/**
+ * Identifies a raster image by its magic bytes, independent of any MIME label
+ * the tag claims. An APIC/PICTURE payload that is truncated, empty, or not an
+ * image at all fails here and is treated as "no embedded art".
+ */
+function sniffImageMime(buf: Buffer): string | null {
+  if (buf.length < 12) return null;
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'image/png';
+  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) return 'image/gif';
+  if (buf[0] === 0x42 && buf[1] === 0x4d) return 'image/bmp';
+  if (buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return 'image/webp';
+  return null;
+}
+
+/** Sort key so the front cover is tried first when a file carries several pictures. */
+function frontCoverRank(pic: RawPicture): number {
+  const t = (pic.type || '').toLowerCase();
+  if (t.includes('front')) return 0;
+  if (t === '' || t.includes('cover')) return 1;
+  return 2;
+}
+
+/** Sibling image filenames, lower-cased, checked in this order for the sidecar fallback. */
+const SIDECAR_ART_BASENAMES = ['cover', 'folder', 'albumart', 'front', 'album'];
+const SIDECAR_ART_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'];
+
+function toArtworkUri(bytes: Buffer, mime: string): EmbeddedArtwork {
+  return { format: mime, data: `data:${mime};base64,${bytes.toString('base64')}` };
+}
+
 export class AudioMetadataService {
   /**
    * Reads metadata from an audio file (.mp3 or .flac) and returns a Track object.
@@ -20,13 +57,8 @@ export class AudioMetadataService {
       const formatInfo = metadata.format;
 
       let picture: EmbeddedArtwork | undefined = undefined;
-      if (!skipCovers && common.picture && common.picture.length > 0) {
-        const pic = common.picture[0];
-        const base64 = Buffer.from(pic.data).toString('base64');
-        picture = {
-          format: pic.format || 'image/jpeg',
-          data: `data:${pic.format || 'image/jpeg'};base64,${base64}`,
-        };
+      if (!skipCovers) {
+        picture = this.pickValidEmbeddedPicture(common.picture) ?? undefined;
       }
 
       return {
@@ -71,23 +103,59 @@ export class AudioMetadataService {
   }
 
   /**
-   * Reads and extracts embedded artwork on-demand for a single track.
+   * Reads and extracts artwork on-demand for a single track: a valid embedded
+   * picture (front cover preferred) if present, otherwise a sibling
+   * cover/folder/albumart image file, otherwise null.
    */
   async getArtwork(filePath: string): Promise<EmbeddedArtwork | null> {
     try {
       const metadata = await mm.parseFile(filePath, { duration: false, skipCovers: false });
-      if (metadata.common.picture && metadata.common.picture.length > 0) {
-        const pic = metadata.common.picture[0];
-        const base64 = Buffer.from(pic.data).toString('base64');
-        return {
-          format: pic.format || 'image/jpeg',
-          data: `data:${pic.format || 'image/jpeg'};base64,${base64}`,
-        };
-      }
-      return null;
+      const embedded = this.pickValidEmbeddedPicture(metadata.common.picture);
+      if (embedded) return embedded;
     } catch {
-      return null;
+      // Unreadable tags — still try a sidecar image below.
     }
+    return this.findSidecarArtwork(filePath);
+  }
+
+  /**
+   * Picks the first embedded picture whose bytes are a decodable image, trying
+   * the front cover first. The tag's own MIME claim is not trusted: the type is
+   * taken from the magic bytes, and a payload that sniffs to nothing is skipped.
+   */
+  private pickValidEmbeddedPicture(pictures: readonly RawPicture[] | undefined): EmbeddedArtwork | null {
+    if (!pictures || pictures.length === 0) return null;
+    const ordered = [...pictures].sort((a, b) => frontCoverRank(a) - frontCoverRank(b));
+    for (const pic of ordered) {
+      const bytes = Buffer.from(pic.data);
+      const mime = sniffImageMime(bytes);
+      if (mime) return toArtworkUri(bytes, mime);
+    }
+    return null;
+  }
+
+  /**
+   * Looks for a loose cover image next to the audio file (cover.jpg, folder.png,
+   * albumart.jpg, ...), used when a track carries no usable embedded art.
+   */
+  private async findSidecarArtwork(audioFilePath: string): Promise<EmbeddedArtwork | null> {
+    try {
+      const dir = path.dirname(audioFilePath);
+      const entries = await fs.promises.readdir(dir);
+      const byLowerName = new Map(entries.map(e => [e.toLowerCase(), e]));
+      for (const base of SIDECAR_ART_BASENAMES) {
+        for (const ext of SIDECAR_ART_EXTS) {
+          const actual = byLowerName.get(base + ext);
+          if (!actual) continue;
+          const bytes = await fs.promises.readFile(path.join(dir, actual));
+          const mime = sniffImageMime(bytes);
+          if (mime) return toArtworkUri(bytes, mime);
+        }
+      }
+    } catch {
+      // Directory unreadable — no sidecar art.
+    }
+    return null;
   }
 
   /**

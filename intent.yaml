@@ -25,9 +25,9 @@ INT-APP-002:
   rationale: "Required for targeting removable storage for car synchronization."
 
 INT-LIB-001:
-  version: 1.0.0
+  version: 1.1.0
   status: active
-  statement: "The library ingestion service scans source directories and imports valid MP3 and FLAC files into the managed library structure."
+  statement: "The library ingestion service scans source directories and imports valid MP3, FLAC, and WAV files into the managed library structure."
   derived_from:
     - REQ-LIB-001
   test:
@@ -35,7 +35,7 @@ INT-LIB-001:
     component: LibraryService
     type: behavior
   criticality: critical
-  rationale: "Forms the core music catalog from local user files."
+  rationale: "Forms the core music catalog from local user files. WAV is included because high-bit-depth WAV masters are a supported source that sync transcodes for the car (INT-SYNC-004)."
 
 INT-LIB-002:
   version: 1.0.0
@@ -129,9 +129,9 @@ INT-TAG-004:
   rationale: "Enables fast batch updating of artist, album, year, or genre across entire albums."
 
 INT-TAG-005:
-  version: 1.0.0
+  version: 1.1.0
   status: active
-  statement: "The metadata service extracts embedded album art from MP3 APIC frames and FLAC PICTURE blocks and writes replacement image data."
+  statement: "The metadata service extracts embedded album art from MP3 APIC frames and FLAC PICTURE blocks, preferring the front-cover image and rejecting any payload that is not a decodable image, falls back to a sibling cover/folder/albumart image file when no valid embedded art is present, and writes replacement image data back to the file."
   derived_from:
     - REQ-TAG-002
   test:
@@ -139,7 +139,7 @@ INT-TAG-005:
     component: ArtworkManager
     type: behavior
   criticality: medium
-  rationale: "Allows embedding and updating cover artwork directly within audio files."
+  rationale: "Shows reliable cover artwork even when a file's embedded art is malformed, mislabelled, or absent, and updates artwork directly within audio files."
 
 INT-TAG-006:
   version: 1.0.0
@@ -168,9 +168,9 @@ INT-ORG-001:
   rationale: "Enforces consistent car head unit compatible folder and file hierarchies."
 
 INT-ORG-002:
-  version: 1.0.0
+  version: 1.1.0
   status: active
-  statement: "The filesystem organizer formats multi-disc albums with subdirectories matching '<Artist>/<Album>/Disc <N> ...' matching reference car structure."
+  statement: "The filesystem organizer consolidates every disc of a multi-disc album into a single '<Artist>/<Album>/' folder, keeps the disc number in file metadata only, and renumbers filenames continuously across discs so the album plays end to end in order."
   derived_from:
     - REQ-ORG-001
     - REQ-ORG-002
@@ -179,7 +179,7 @@ INT-ORG-002:
     component: FilesystemOrganizer
     type: behavior
   criticality: high
-  rationale: "Maintains multi-disc album organization aligned with reference car layouts."
+  rationale: "Head units browse by folder and sort by filename; one folder with a single ascending track sequence plays a multi-disc album in order, where per-disc subfolders or restarting track numbers would not. Continuous renumbering is performed by the multi-disc standardizer rule; the organizer emits no disc subfolder."
 
 INT-ORG-003:
   version: 1.0.0
@@ -338,9 +338,9 @@ INT-DIST-001:
   rationale: "Presents clear download instructions to web visitors without simulating impossible browser filesystem operations."
 
 INT-DIST-002:
-  version: 1.0.0
+  version: 1.1.0
   status: active
-  statement: "The release packaging pipeline produces portable Windows binaries accompanied by SHA-256 checksums and SmartScreen installation documentation without auto-updaters."
+  statement: "The release packaging pipeline produces both a portable Windows executable and an NSIS setup installer (non-oneClick, user-chosen install directory), each accompanied by SHA-256 checksums and SmartScreen installation documentation, and ships no auto-updater."
   derived_from:
     - REQ-DIST-002
   test:
@@ -348,7 +348,7 @@ INT-DIST-002:
     component: PackagingContract
     type: contract
   criticality: high
-  rationale: "Delivers verifiable portable desktop binaries without elevation or automatic update daemons."
+  rationale: "Delivers verifiable desktop binaries in both portable and installer form, per-user and without elevation, with no automatic update daemon."
 
 INT-UI-001:
   version: 1.0.0

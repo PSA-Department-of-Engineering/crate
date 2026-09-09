@@ -67,7 +67,7 @@ const SAMPLE_TRACKS: Track[] = [
 ];
 
 describe('Library Ingestion & Query Engine', () => {
-  intent('INT-LIB-001', 'Ingestion service imports valid MP3 and FLAC files', async () => {
+  intent('INT-LIB-001', 'Ingestion service imports valid MP3, FLAC, and WAV files', async () => {
     const validTracks = SAMPLE_TRACKS.filter(t => !t.isCorrupt);
     expect(validTracks.length).toBe(3);
     expect(validTracks[0].format).toBe('mp3');
@@ -81,9 +81,10 @@ describe('Library Ingestion & Query Engine', () => {
       const nestedDir = path.join(realMusicDir, 'Rock');
       await fs.promises.mkdir(nestedDir, { recursive: true });
 
-      // Create sample mp3 and flac files
+      // Create sample mp3, flac, and wav files
       const mp3File = path.join(nestedDir, 'song1.mp3');
       const flacFile = path.join(nestedDir, 'song2.flac');
+      const wavFile = path.join(nestedDir, 'song3.wav');
       const nonAudioFile = path.join(nestedDir, 'cover.jpg');
 
       const mockMp3Data = Buffer.concat([
@@ -96,8 +97,25 @@ describe('Library Ingestion & Query Engine', () => {
       streamInfo.writeUInt8(34, 3);
       const mockFlacData = Buffer.concat([flacHeader, streamInfo, Buffer.alloc(512, 0xAA)]);
 
+      // Minimal but well-formed RIFF/WAVE container (PCM fmt chunk, empty data chunk)
+      const wavData = Buffer.alloc(44);
+      wavData.write('RIFF', 0);
+      wavData.writeUInt32LE(36, 4);
+      wavData.write('WAVE', 8);
+      wavData.write('fmt ', 12);
+      wavData.writeUInt32LE(16, 16);
+      wavData.writeUInt16LE(1, 20);
+      wavData.writeUInt16LE(2, 22);
+      wavData.writeUInt32LE(44100, 24);
+      wavData.writeUInt32LE(176400, 28);
+      wavData.writeUInt16LE(4, 32);
+      wavData.writeUInt16LE(16, 34);
+      wavData.write('data', 36);
+      wavData.writeUInt32LE(0, 40);
+
       await fs.promises.writeFile(mp3File, mockMp3Data);
       await fs.promises.writeFile(flacFile, mockFlacData);
+      await fs.promises.writeFile(wavFile, wavData);
       await fs.promises.writeFile(nonAudioFile, Buffer.from('fake image data'));
 
       // 1. Symlink / junction directory
@@ -141,11 +159,15 @@ describe('Library Ingestion & Query Engine', () => {
       const result = await scanner.scanDirectory(tempDir);
 
       // Verify files were found
-      expect(result.tracks.length).toBeGreaterThanOrEqual(2);
+      expect(result.tracks.length).toBeGreaterThanOrEqual(3);
       const fileNames = result.tracks.map(t => path.basename(t.filePath).toLowerCase());
       expect(fileNames).toContain('song1.mp3');
       expect(fileNames).toContain('song2.flac');
+      expect(fileNames).toContain('song3.wav');
       expect(fileNames).not.toContain('cover.jpg');
+
+      const wavTrack = result.tracks.find(t => path.basename(t.filePath).toLowerCase() === 'song3.wav');
+      expect(wavTrack?.format).toBe('wav');
     } finally {
       await fs.promises.rm(tempDir, { recursive: true, force: true });
     }

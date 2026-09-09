@@ -50,16 +50,20 @@ export function formatTrackNumber(trackNum?: number): string {
 }
 
 export interface OrganizationOptions {
-  multiDiscSubfolder?: boolean; // true for "Disc 1/01 Title.mp3", false for "1-01 Title.mp3"
   targetFormat?: AudioFormat;
 }
 
 /**
  * Generates the car-compatible relative destination path for a given track:
  * Pattern: <Artist>/<Album>/<Track#> <Title>.<ext>
- * Multi-disc: <Artist>/<Album>/Disc <N>/<Track#> <Title>.<ext>
+ *
+ * Multi-disc albums are consolidated into the single album folder with no disc
+ * subfolder (INT-ORG-002): the disc number lives in metadata, and `trackNumber`
+ * is expected to already run continuously across discs. The multi-disc
+ * standardizer rule performs that renumbering upstream; this function only
+ * places the file and never re-introduces a "Disc N" directory.
  */
-export function getCarRelativePath(track: Track, options: OrganizationOptions = { multiDiscSubfolder: true }): string {
+export function getCarRelativePath(track: Track, options: OrganizationOptions = {}): string {
   const artist = sanitizeFat32Segment(track.artist || track.albumArtist || 'Unknown Artist');
   const album = sanitizeFat32Segment(track.album || 'Unknown Album');
   const title = sanitizeFat32Segment(track.title || 'Unknown Title');
@@ -67,16 +71,6 @@ export function getCarRelativePath(track: Track, options: OrganizationOptions = 
   const activeFormat = options.targetFormat || track.format;
   const ext = activeFormat === 'flac' ? '.flac' : activeFormat === 'wav' ? '.wav' : '.mp3';
 
-  let filename = `${trackNumStr} ${title}${ext}`;
-
-  if (track.discNumber && track.discNumber > 0 && track.totalDiscs && track.totalDiscs > 1) {
-    if (options.multiDiscSubfolder) {
-      const discFolder = `Disc ${track.discNumber}`;
-      return path.join(artist, album, discFolder, filename).replace(/\\/g, '/');
-    } else {
-      filename = `${track.discNumber}-${trackNumStr} ${title}${ext}`;
-    }
-  }
-
+  const filename = `${trackNumStr} ${title}${ext}`;
   return path.join(artist, album, filename).replace(/\\/g, '/');
 }

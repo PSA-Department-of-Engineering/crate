@@ -14,7 +14,7 @@ export class LibraryScannerService {
   }
 
   /**
-   * Recursively scans a root directory for MP3 and FLAC files.
+   * Recursively scans a root directory for MP3, FLAC, and WAV files.
    * Leverages SQLite database cache for high performance incremental scans.
    */
   async scanDirectory(
@@ -134,7 +134,7 @@ export class LibraryScannerService {
   }
 
   /**
-   * Helper to recursively find all .mp3 and .flac files in a directory.
+   * Helper to recursively find all .mp3, .flac, and .wav files in a directory.
    * Traverses regular directories, symlinks, and NTFS junctions with loop protection.
    */
   private async collectAudioFiles(

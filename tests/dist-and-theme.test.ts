@@ -12,13 +12,22 @@ describe('Distribution Contract & Visual Theme Tokens', () => {
     expect(installDoc).toContain('Crate-Portable-1.0.0.exe');
   });
 
-  intent('INT-DIST-002', 'Packaging contract produces portable release without auto-updaters', async () => {
-    // Contract: Package.json and electron configuration produces portable release without auto-updater
+  intent('INT-DIST-002', 'Packaging contract produces a portable executable and an NSIS installer without auto-updaters', async () => {
+    // Contract: no auto-updater dependency is present
     const pkgJson = JSON.parse(await fs.promises.readFile(path.join(process.cwd(), 'package.json'), 'utf-8'));
     const allDeps = { ...pkgJson.dependencies, ...pkgJson.devDependencies };
 
     expect(allDeps['electron-updater']).toBeUndefined();
     expect(allDeps['update-electron-app']).toBeUndefined();
+
+    // Contract: electron-builder emits BOTH a portable exe and an NSIS setup
+    // installer, and the installer is non-oneClick with a user-chosen directory
+    const builderYaml = await fs.promises.readFile(path.join(process.cwd(), 'electron-builder.yml'), 'utf-8');
+    expect(builderYaml).toContain('target: portable');
+    expect(builderYaml).toContain('target: nsis');
+    expect(builderYaml).toContain('oneClick: false');
+    expect(builderYaml).toContain('allowToChangeInstallationDirectory: true');
+    expect(builderYaml).not.toContain('publish:');
   });
 
   intent('INT-UI-001', 'User interface adheres to locked visual identity tokens and Nunito typography', async () => {

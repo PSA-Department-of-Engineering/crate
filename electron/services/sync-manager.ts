@@ -205,7 +205,7 @@ export class SyncManagerService {
       const needsTranscode = isCarIncompatibleWav(track);
 
       const targetFormat: AudioFormat = needsTranscode ? 'flac' : track.format;
-      const targetRel = getCarRelativePath(track, { multiDiscSubfolder: true, targetFormat });
+      const targetRel = getCarRelativePath(track, { targetFormat });
       activeTargetPaths.add(targetRel.toLowerCase());
 
       const fullTargetPath = path.join(options.targetVolumePath, targetRel);
