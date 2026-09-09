@@ -1,7 +1,7 @@
 INT-STARLIGHT-001:
     version: 1.0.0
     status: active
-    statement: "Every doc page MUST have a non-empty 	itle frontmatter field."
+    statement: "Every doc page MUST have a non-empty title frontmatter field."
     rationale: "Starlight uses title for nav, page heading, and OG metadata; missing title yields broken UI."
     test:
         scope: unit
