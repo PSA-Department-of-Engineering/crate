@@ -213,30 +213,31 @@ export const App: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 flex overflow-hidden">
-        {activeTab === 'library' && (
-          <LibraryView
-            tracks={library.filteredAndSortedTracks}
-            selectedTrackIds={library.selectedTrackIds}
-            currentPlayingTrackId={player.state.currentTrack?.id}
-            isPlaying={player.state.isPlaying}
-            sortField={library.sortField}
-            sortDirection={library.sortDirection}
-            onSort={library.handleSort}
-            onSelectTrack={library.toggleSelectTrack}
-            onSelectAll={library.selectAll}
-            onPlayTrack={handlePlayFromLibrary}
-            onPlayNext={player.playNext}
-            onAddToQueue={player.addToQueue}
-            onEditTags={handleEditTags}
-            onChangeCover={handleChangeCover}
-            onAddToSync={handleAddToSync}
-            onRevealInExplorer={handleRevealInExplorer}
-            onCopyPath={handleCopyPath}
-            onOpenFolder={handleOpenFolder}
-            libraryPath={library.libraryPath}
-            searchQuery={library.searchQuery}
-          />
-        )}
+        {/* Keep browsing state and scroll offsets alive between pages. */}
+        <LibraryView
+          key={library.libraryPath}
+          isActive={activeTab === 'library'}
+          tracks={library.filteredAndSortedTracks}
+          selectedTrackIds={library.selectedTrackIds}
+          currentPlayingTrackId={player.state.currentTrack?.id}
+          isPlaying={player.state.isPlaying}
+          sortField={library.sortField}
+          sortDirection={library.sortDirection}
+          onSort={library.handleSort}
+          onSelectTrack={library.toggleSelectTrack}
+          onSelectAll={library.selectAll}
+          onPlayTrack={handlePlayFromLibrary}
+          onPlayNext={player.playNext}
+          onAddToQueue={player.addToQueue}
+          onEditTags={handleEditTags}
+          onChangeCover={handleChangeCover}
+          onAddToSync={handleAddToSync}
+          onRevealInExplorer={handleRevealInExplorer}
+          onCopyPath={handleCopyPath}
+          onOpenFolder={handleOpenFolder}
+          libraryPath={library.libraryPath}
+          searchQuery={library.searchQuery}
+        />
 
         {activeTab === 'tageditor' && (
           <TagEditor
@@ -244,6 +245,7 @@ export const App: React.FC = () => {
             onSaveSingle={library.updateTrackTags}
             onSaveBatch={library.batchUpdateTags}
             onDropTracks={handleEditTags}
+            onBackToLibrary={() => setActiveTab('library')}
           />
         )}
 
