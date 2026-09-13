@@ -61,4 +61,88 @@ describe('Tag Editor Playback & Selection Stability (#83)', () => {
     expect(batchKey).toContain(sampleTrackA.id);
     expect(batchKey).toContain(sampleTrackB.id);
   });
+
+  describe('Existing Artists & Albums Autocomplete Suggestions (#87)', () => {
+    const libraryTracks: Track[] = [
+      {
+        id: 't-1',
+        filePath: 'C:/Music/track1.mp3',
+        title: 'Song 1',
+        artist: 'Pink Floyd',
+        album: 'The Wall',
+        albumArtist: 'Pink Floyd',
+        duration: 180,
+        format: 'mp3',
+        fileSize: 5000000,
+        mtime: 1000,
+      },
+      {
+        id: 't-2',
+        filePath: 'C:/Music/track2.mp3',
+        title: 'Song 2',
+        artist: 'David Gilmour',
+        album: 'Rattle That Lock',
+        albumArtist: 'David Gilmour',
+        duration: 200,
+        format: 'mp3',
+        fileSize: 6000000,
+        mtime: 1001,
+      },
+      {
+        id: 't-3',
+        filePath: 'C:/Music/track3.mp3',
+        title: 'Song 3',
+        artist: 'Unknown Artist',
+        album: 'Unknown Album',
+        duration: 120,
+        format: 'mp3',
+        fileSize: 4000000,
+        mtime: 1002,
+      },
+      {
+        id: 't-4',
+        filePath: 'C:/Music/track4.mp3',
+        title: 'Song 4',
+        artist: 'KAIZEN x LIFER',
+        album: 'LUV Tape',
+        albumArtist: 'Various Artists',
+        duration: 240,
+        format: 'mp3',
+        fileSize: 7000000,
+        mtime: 1003,
+      },
+    ];
+
+    it('collects unique, non-unknown artist names from library tracks', () => {
+      const set = new Set<string>();
+      for (const t of libraryTracks) {
+        if (t.artist && t.artist.trim() && t.artist.toLowerCase() !== 'unknown artist') {
+          set.add(t.artist.trim());
+        }
+        if (t.albumArtist && t.albumArtist.trim() && t.albumArtist.toLowerCase() !== 'unknown artist') {
+          set.add(t.albumArtist.trim());
+        }
+      }
+      const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+      expect(sorted).toContain('Pink Floyd');
+      expect(sorted).toContain('David Gilmour');
+      expect(sorted).toContain('KAIZEN x LIFER');
+      expect(sorted).toContain('Various Artists');
+      expect(sorted).not.toContain('Unknown Artist');
+    });
+
+    it('collects unique album names excluding unknown fallbacks', () => {
+      const set = new Set<string>();
+      for (const t of libraryTracks) {
+        if (t.album && t.album.trim() && t.album.toLowerCase() !== 'unknown album') {
+          set.add(t.album.trim());
+        }
+      }
+      const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+      expect(sorted).toEqual(['LUV Tape', 'Rattle That Lock', 'The Wall']);
+      expect(sorted).not.toContain('Unknown Album');
+    });
+  });
 });

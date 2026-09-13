@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Tag,
   Save,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Track, TagUpdates } from '../models/types';
 import { hasDragData, getDragData } from '../utils/drag-utils';
+import { isUnknownMetadataValue } from '../utils/organization-path';
 
 interface TagEditorProps {
   selectedTracks: Track[];
@@ -20,6 +21,8 @@ interface TagEditorProps {
   onSaveBatch: (filePaths: string[], tags: TagUpdates) => Promise<any>;
   onDropTracks?: (tracks: Track[]) => void;
   onBackToLibrary?: () => void;
+  allTracks?: Track[];
+  existingArtists?: string[];
 }
 
 export const TagEditor: React.FC<TagEditorProps> = ({
@@ -28,9 +31,50 @@ export const TagEditor: React.FC<TagEditorProps> = ({
   onSaveBatch,
   onDropTracks,
   onBackToLibrary,
+  allTracks,
+  existingArtists,
 }) => {
   const isBatch = selectedTracks.length > 1;
   const singleTrack = selectedTracks.length === 1 ? selectedTracks[0] : null;
+
+  // Derive list of unique known artists for autocomplete suggestions
+  const artistSuggestions = useMemo(() => {
+    if (existingArtists && existingArtists.length > 0) {
+      return existingArtists;
+    }
+    const sourceTracks = allTracks && allTracks.length > 0 ? allTracks : selectedTracks;
+    const set = new Set<string>();
+    for (const t of sourceTracks) {
+      if (t.artist && t.artist.trim() && !isUnknownMetadataValue(t.artist)) {
+        set.add(t.artist.trim());
+      }
+      if (t.albumArtist && t.albumArtist.trim() && !isUnknownMetadataValue(t.albumArtist)) {
+        set.add(t.albumArtist.trim());
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  }, [existingArtists, allTracks, selectedTracks]);
+
+  const albumSuggestions = useMemo(() => {
+    const sourceTracks = allTracks && allTracks.length > 0 ? allTracks : selectedTracks;
+    const set = new Set<string>();
+    for (const t of sourceTracks) {
+      if (t.album && t.album.trim() && !isUnknownMetadataValue(t.album)) {
+        set.add(t.album.trim());
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  }, [allTracks, selectedTracks]);
+
+  const albumArtistSuggestions = useMemo(() => {
+    const set = new Set(artistSuggestions);
+    set.add('Various Artists');
+    return Array.from(set).sort((a, b) => {
+      if (a === 'Various Artists') return -1;
+      if (b === 'Various Artists') return 1;
+      return a.localeCompare(b, undefined, { sensitivity: 'base' });
+    });
+  }, [artistSuggestions]);
 
   const [title, setTitle] = useState<string>('');
   const [artist, setArtist] = useState<string>('');
@@ -410,11 +454,17 @@ export const TagEditor: React.FC<TagEditorProps> = ({
               </label>
               <input
                 type="text"
+                list="tag-editor-artists-list"
                 value={artist}
                 onChange={e => setArtist(e.target.value)}
                 placeholder={isBatch ? 'Keep existing / Mixed' : 'e.g. Pink Floyd'}
                 className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
               />
+              <datalist id="tag-editor-artists-list">
+                {artistSuggestions.map(name => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
             </div>
 
             <div>
@@ -423,11 +473,17 @@ export const TagEditor: React.FC<TagEditorProps> = ({
               </label>
               <input
                 type="text"
+                list="tag-editor-albums-list"
                 value={album}
                 onChange={e => setAlbum(e.target.value)}
                 placeholder={isBatch ? 'Keep existing / Mixed' : 'e.g. The Wall'}
                 className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
               />
+              <datalist id="tag-editor-albums-list">
+                {albumSuggestions.map(name => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
             </div>
           </div>
 
@@ -439,11 +495,17 @@ export const TagEditor: React.FC<TagEditorProps> = ({
                 </label>
                 <input
                   type="text"
+                  list="tag-editor-album-artists-list"
                   value={albumArtist}
                   onChange={e => setAlbumArtist(e.target.value)}
                   placeholder="e.g. Various Artists"
                   className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:ring-2 focus:ring-ring focus:outline-none"
                 />
+                <datalist id="tag-editor-album-artists-list">
+                  {albumArtistSuggestions.map(name => (
+                    <option key={name} value={name} />
+                  ))}
+                </datalist>
               </div>
 
               <div>

@@ -249,6 +249,7 @@ export const App: React.FC = () => {
             onSaveBatch={library.batchUpdateTags}
             onDropTracks={handleEditTags}
             onBackToLibrary={() => setActiveTab('library')}
+            allTracks={library.tracks}
           />
         )}
 
