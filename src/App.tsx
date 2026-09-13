@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Header } from './components/Header';
 import { LibraryView } from './components/LibraryView';
 import { TagEditor } from './components/TagEditor';
@@ -114,7 +114,10 @@ export const App: React.FC = () => {
     return <UndockedMiniPlayer />;
   }
 
-  const selectedTracksList = library.tracks.filter(t => library.selectedTrackIds.includes(t.id));
+  const selectedTracksList = useMemo(
+    () => library.tracks.filter(t => library.selectedTrackIds.includes(t.id)),
+    [library.tracks, library.selectedTrackIds]
+  );
 
   const handlePlayFromLibrary = (track: Track, queue?: Track[]) => {
     player.playTrack(track, queue || library.filteredAndSortedTracks);
