@@ -117,7 +117,8 @@ export const LibraryTable: React.FC<LibraryTableProps> = ({
   const openSongMenu = (e: React.MouseEvent, track: Track) => {
     e.preventDefault();
     e.stopPropagation();
-    const items = createSongMenuItems(track, actionHandlers);
+    const selectedTracks = tracks.filter((t) => selectedTrackIds.includes(t.id));
+    const items = createSongMenuItems(track, actionHandlers, selectedTracks);
     setContextMenu({
       isOpen: true,
       position: { x: e.clientX, y: e.clientY },

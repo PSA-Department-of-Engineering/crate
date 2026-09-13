@@ -10,6 +10,7 @@ import {
   Copy,
   FolderOpen,
   Image as ImageIcon,
+  Layers,
 } from 'lucide-react';
 import { Track, ArtistGroup, AlbumGroup } from '../models/types';
 import { MenuItem } from '../components/ContextMenu';
@@ -206,8 +207,11 @@ export function createAlbumMenuItems(
 
 export function createSongMenuItems(
   track: Track,
-  handlers: ContextActionHandlers
+  handlers: ContextActionHandlers,
+  selectedTracks?: Track[]
 ): MenuItem[] {
+  const isMultiSelected = !!(selectedTracks && selectedTracks.length > 1);
+
   const items: MenuItem[] = [
     {
       id: 'play-song',
@@ -233,9 +237,19 @@ export function createSongMenuItems(
       label: 'Edit in Tag Editor',
       icon: React.createElement(Tag, { className: 'w-3.5 h-3.5' }),
       onClick: () => handlers.onEditTags([track]),
-      divider: true,
+      divider: !isMultiSelected,
     },
   ];
+
+  if (isMultiSelected) {
+    items.push({
+      id: 'edit-all-selected-tags',
+      label: `Edit All Selected (${selectedTracks!.length} tracks)`,
+      icon: React.createElement(Layers, { className: 'w-3.5 h-3.5' }),
+      onClick: () => handlers.onEditTags(selectedTracks!),
+      divider: true,
+    });
+  }
 
   if (handlers.onCopyPath) {
     items.push({
