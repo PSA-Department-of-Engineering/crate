@@ -165,4 +165,37 @@ describe('Responsive Context Menu Item Generators', () => {
     revealSong?.onClick();
     expect(handlers.onRevealInExplorer).toHaveBeenCalledWith(SAMPLE_TRACK.filePath);
   });
+
+  it('includes Edit All Selected action when multiple tracks are selected (#85)', () => {
+    const secondTrack: Track = {
+      ...SAMPLE_TRACK,
+      id: 't-sample-2',
+      filePath: 'C:/Music/Pink Floyd/The Wall/02 The Thin Ice.mp3',
+      title: 'The Thin Ice',
+      trackNumber: 2,
+    };
+
+    const handlers: ContextActionHandlers = {
+      onPlay: vi.fn(),
+      onPlayNext: vi.fn(),
+      onAddToQueue: vi.fn(),
+      onEditTags: vi.fn(),
+      onCopyPath: vi.fn(),
+      onRevealInExplorer: vi.fn(),
+    };
+
+    const selectedTracks = [SAMPLE_TRACK, secondTrack];
+    const items = createSongMenuItems(SAMPLE_TRACK, handlers, selectedTracks);
+
+    const editSingle = items.find((i) => i.id === 'edit-song-tags');
+    expect(editSingle).toBeDefined();
+    editSingle?.onClick();
+    expect(handlers.onEditTags).toHaveBeenCalledWith([SAMPLE_TRACK]);
+
+    const editAll = items.find((i) => i.id === 'edit-all-selected-tags');
+    expect(editAll).toBeDefined();
+    expect(editAll?.label).toBe('Edit All Selected (2 tracks)');
+    editAll?.onClick();
+    expect(handlers.onEditTags).toHaveBeenCalledWith(selectedTracks);
+  });
 });
