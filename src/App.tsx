@@ -78,7 +78,7 @@ export const App: React.FC = () => {
     void window.crateBridge?.saveSettings?.({ theme: nextTheme });
   };
 
-  // Keyboard Shortcuts (Space play/pause, Arrow Left/Right seek, Arrow Up/Down volume)
+  // Keyboard Shortcuts (Space play/pause, Arrow Left/Right seek, Arrow Up/Down volume, F2 edit tags)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Avoid intercepting keystrokes in input elements
@@ -102,12 +102,17 @@ export const App: React.FC = () => {
       } else if (e.code === 'ArrowDown') {
         e.preventDefault();
         player.setVolume(Math.max(0, player.state.volume - 0.05));
+      } else if (e.key === 'F2') {
+        if (library.selectedTrackIds.length > 0) {
+          e.preventDefault();
+          setActiveTab('tageditor');
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [player]);
+  }, [player, library.selectedTrackIds]);
 
   // If this window is the standalone undocked player
   if (isUndockedWindow) {

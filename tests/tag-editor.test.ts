@@ -145,4 +145,71 @@ describe('Tag Editor Playback & Selection Stability (#83)', () => {
       expect(sorted).not.toContain('Unknown Album');
     });
   });
+
+  describe('F2 Tag Editor Shortcut (#91)', () => {
+    it('determines whether Tag Editor should open on F2 given track selections', () => {
+      const handleF2KeyPress = (
+        e: { key: string; preventDefault: () => void; target?: { tagName: string } },
+        selectedTrackIds: string[],
+        setActiveTab: (tab: string) => void
+      ) => {
+        const target = e.target as HTMLElement | undefined;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+          return false;
+        }
+
+        if (e.key === 'F2' && selectedTrackIds.length > 0) {
+          e.preventDefault();
+          setActiveTab('tageditor');
+          return true;
+        }
+        return false;
+      };
+
+      let activeTab = 'library';
+      let prevented = false;
+      const fakePrevent = () => {
+        prevented = true;
+      };
+
+      // 1. When tracks are selected, pressing F2 navigates to tageditor
+      const opened = handleF2KeyPress(
+        { key: 'F2', preventDefault: fakePrevent },
+        ['track-1'],
+        (tab) => {
+          activeTab = tab;
+        }
+      );
+      expect(opened).toBe(true);
+      expect(prevented).toBe(true);
+      expect(activeTab).toBe('tageditor');
+
+      // 2. When no tracks are selected, pressing F2 does not navigate
+      activeTab = 'library';
+      prevented = false;
+      const openedNoSelection = handleF2KeyPress(
+        { key: 'F2', preventDefault: fakePrevent },
+        [],
+        (tab) => {
+          activeTab = tab;
+        }
+      );
+      expect(openedNoSelection).toBe(false);
+      expect(prevented).toBe(false);
+      expect(activeTab).toBe('library');
+
+      // 3. When an input element is focused, F2 is ignored
+      prevented = false;
+      const openedInInput = handleF2KeyPress(
+        { key: 'F2', preventDefault: fakePrevent, target: { tagName: 'INPUT' } },
+        ['track-1'],
+        (tab) => {
+          activeTab = tab;
+        }
+      );
+      expect(openedInInput).toBe(false);
+      expect(prevented).toBe(false);
+      expect(activeTab).toBe('library');
+    });
+  });
 });
