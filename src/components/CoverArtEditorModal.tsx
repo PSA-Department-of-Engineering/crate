@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { EmbeddedArtwork } from '../models/types';
+import { prepareImageForEditor } from '../utils/image-utils';
 
 export type CoverArtScope = 'artist' | 'album';
 
@@ -37,7 +38,7 @@ interface Point {
 const PREVIEW_SIZE = 320;
 const OUTPUT_SIZE = 500;
 const MAX_OUTPUT_BYTES = 500 * 1024;
-const MAX_INPUT_BYTES = 10 * 1024 * 1024;
+const MAX_INPUT_BYTES = 100 * 1024 * 1024;
 
 function toDataUri(artwork: EmbeddedArtwork): string {
   return artwork.data.startsWith('data:')
@@ -115,6 +116,7 @@ export const CoverArtEditorModal: React.FC<CoverArtEditorModalProps> = ({
   const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
   const [url, setUrl] = useState<string>('');
   const [isLoadingUrl, setIsLoadingUrl] = useState<boolean>(false);
+  const [isProcessingFile, setIsProcessingFile] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -135,6 +137,7 @@ export const CoverArtEditorModal: React.FC<CoverArtEditorModalProps> = ({
     setPan({ x: 0, y: 0 });
     setUrl('');
     setIsLoadingUrl(false);
+    setIsProcessingFile(false);
     setIsSaving(false);
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -144,11 +147,11 @@ export const CoverArtEditorModal: React.FC<CoverArtEditorModalProps> = ({
     if (!isOpen) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !isSaving) onClose();
+      if (event.key === 'Escape' && !isSaving && !isProcessingFile) onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isSaving, onClose]);
+  }, [isOpen, isSaving, isProcessingFile, onClose]);
 
   if (!isOpen) return null;
 
@@ -171,15 +174,20 @@ export const CoverArtEditorModal: React.FC<CoverArtEditorModalProps> = ({
     event.target.value = '';
     if (!file) return;
     if (file.size > MAX_INPUT_BYTES) {
-      setErrorMessage('Choose an image smaller than 10 MB.');
+      setErrorMessage('Choose an image smaller than 100 MB.');
       return;
     }
 
+    setIsProcessingFile(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
     try {
-      const data = await readFileAsDataUri(file);
-      setImageSource(data, file.type || 'image/jpeg', file.name);
+      const prepared = await prepareImageForEditor(file);
+      setImageSource(prepared.data, prepared.format, file.name);
     } catch (error: any) {
       setErrorMessage(error?.message || 'Could not read the selected image.');
+    } finally {
+      setIsProcessingFile(false);
     }
   };
 
@@ -385,19 +393,21 @@ export const CoverArtEditorModal: React.FC<CoverArtEditorModalProps> = ({
                 <Upload className="h-4 w-4 text-primary" />
                 Upload a picture
               </div>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 text-xs font-semibold transition-colors hover:bg-secondary/70">
-                <Upload className="h-4 w-4 text-primary" />
-                <span>{sourceData ? 'Choose another file' : 'Choose image file'}</span>
+              <label className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 text-xs font-semibold transition-colors hover:bg-secondary/70 ${
+                isProcessingFile ? 'cursor-not-allowed opacity-60' : ''
+              }`}>
+                {isProcessingFile ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Upload className="h-4 w-4 text-primary" />}
+                <span>{isProcessingFile ? 'Optimizing photo…' : sourceData ? 'Choose another file' : 'Choose image file'}</span>
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif,image/bmp,.png,.jpg,.jpeg,.svg,.webp,.gif,.bmp"
                   onChange={handleFileSelected}
-                  disabled={isSaving}
+                  disabled={isSaving || isProcessingFile}
                   className="hidden"
                 />
               </label>
               <p className="mt-2 text-[11px] text-muted-foreground">
-                PNG, JPG/JPEG, SVG, WebP, GIF, and BMP are accepted.
+                PNG, JPG/JPEG, SVG, WebP, GIF, and BMP are accepted. Large photos are automatically optimized.
               </p>
             </section>
 
@@ -415,13 +425,13 @@ export const CoverArtEditorModal: React.FC<CoverArtEditorModalProps> = ({
                     if (event.key === 'Enter') void handleLoadUrl();
                   }}
                   placeholder="https://example.com/cover.jpg"
-                  disabled={isLoadingUrl || isSaving}
+                  disabled={isLoadingUrl || isSaving || isProcessingFile}
                   className="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-xs text-foreground outline-none focus:ring-2 focus:ring-ring"
                 />
                 <button
                   type="button"
                   onClick={() => void handleLoadUrl()}
-                  disabled={isLoadingUrl || isSaving || !url.trim()}
+                  disabled={isLoadingUrl || isSaving || isProcessingFile || !url.trim()}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isLoadingUrl ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LinkIcon className="h-3.5 w-3.5" />}
@@ -463,7 +473,7 @@ export const CoverArtEditorModal: React.FC<CoverArtEditorModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            disabled={isSaving}
+            disabled={isSaving || isProcessingFile}
             className="rounded-lg border border-border px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:opacity-40"
           >
             Cancel
@@ -471,7 +481,7 @@ export const CoverArtEditorModal: React.FC<CoverArtEditorModalProps> = ({
           <button
             type="button"
             onClick={() => void handleSave()}
-            disabled={!layout || isLoadingUrl || isSaving}
+            disabled={!layout || isLoadingUrl || isSaving || isProcessingFile}
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
