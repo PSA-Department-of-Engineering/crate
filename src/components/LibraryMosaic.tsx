@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Play,
   Shuffle,
@@ -15,12 +15,14 @@ import {
   LayoutGrid,
   List,
 } from 'lucide-react';
-import { Track, ArtistGroup, AlbumGroup } from '../models/types';
+import { Track, ArtistGroup, AlbumGroup, EmbeddedArtwork } from '../models/types';
 import {
   groupTracksByArtist,
   formatDuration,
   formatTotalPlaytime,
   summarizeMetadataIssues,
+  getDistinctArtworkCandidates,
+  ArtworkCandidate,
 } from '../utils/library-utils';
 import { ContextMenu, MenuItem } from './ContextMenu';
 import {
@@ -30,7 +32,7 @@ import {
   createSongMenuItems,
 } from '../utils/menu-utils';
 import { setDragData } from '../utils/drag-utils';
-import { clearArtworkCache, LazyArtwork } from './LazyArtwork';
+import { clearArtworkCache, LazyArtwork, requestArtwork } from './LazyArtwork';
 
 interface MetadataIssueBadgeProps {
   tracks: Track[];
@@ -100,6 +102,170 @@ interface LibraryMosaicProps {
   viewMode?: 'mosaic' | 'list';
   onSetViewMode?: (mode: 'mosaic' | 'list') => void;
 }
+
+const renderArtistFallback = (artistName: string) => {
+  const initials = artistName
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <div className="w-full h-full bg-gradient-to-br from-emerald-900/40 via-emerald-800/20 to-background flex flex-col items-center justify-center text-primary relative overflow-hidden">
+      <Disc className="w-16 h-16 opacity-20 absolute -right-3 -bottom-3 rotate-12" />
+      <span className="font-extrabold text-2xl tracking-widest text-primary/80 select-none">
+        {initials || <Music className="w-8 h-8 opacity-60" />}
+      </span>
+    </div>
+  );
+};
+
+interface ArtistArtworkProps {
+  artist: ArtistGroup;
+  artworkGeneration: number;
+}
+
+const ArtistArtwork: React.FC<ArtistArtworkProps> = ({ artist, artworkGeneration }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isNearViewport, setIsNearViewport] = useState<boolean>(false);
+  const [loadedArtworks, setLoadedArtworks] = useState<Map<string, EmbeddedArtwork | null>>(new Map());
+
+  // Reset loaded artworks whenever cache generation changes (e.g. after tag/artwork edits)
+  useEffect(() => {
+    setLoadedArtworks(new Map());
+  }, [artworkGeneration]);
+
+  const albumTracks = useMemo(() => {
+    return artist.albums
+      .map((album) => {
+        const track = album.tracks[0];
+        return track ? { track, artwork: album.artwork } : null;
+      })
+      .filter((c): c is { track: Track; artwork: AlbumGroup['artwork'] } => Boolean(c))
+      .slice(0, 4);
+  }, [artist.albums]);
+
+  const hasAllInitialArtworks = useMemo(() => {
+    return albumTracks.length <= 1 || albumTracks.every((c) => c.artwork !== undefined);
+  }, [albumTracks]);
+
+  useEffect(() => {
+    if (hasAllInitialArtworks || !containerRef.current) {
+      setIsNearViewport(true);
+      return;
+    }
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsNearViewport(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setIsNearViewport(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '240px' }
+    );
+    observer.observe(containerRef.current);
+
+    return () => observer.disconnect();
+  }, [hasAllInitialArtworks, artworkGeneration]);
+
+  useEffect(() => {
+    if (!isNearViewport || hasAllInitialArtworks || albumTracks.length <= 1) return;
+
+    let isMounted = true;
+    const tracksToFetch = albumTracks.filter((c) => !c.artwork && c.track.filePath);
+
+    if (tracksToFetch.length === 0) return;
+
+    Promise.all(
+      tracksToFetch.map(async (c) => {
+        try {
+          const art = await requestArtwork(c.track.filePath);
+          return { filePath: c.track.filePath, artwork: art };
+        } catch {
+          return { filePath: c.track.filePath, artwork: null };
+        }
+      })
+    ).then((results) => {
+      if (!isMounted) return;
+      setLoadedArtworks((prev) => {
+        const next = new Map(prev);
+        results.forEach((r) => next.set(r.filePath, r.artwork));
+        return next;
+      });
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isNearViewport, hasAllInitialArtworks, albumTracks, artworkGeneration]);
+
+  const distinctCandidates = useMemo(() => {
+    return getDistinctArtworkCandidates(artist.albums, loadedArtworks);
+  }, [artist.albums, loadedArtworks]);
+
+  const renderCandidate = (
+    candidate: ArtworkCandidate,
+    key: string
+  ) => (
+    <LazyArtwork
+      key={key}
+      filePath={candidate.track.filePath}
+      initialArtwork={candidate.artwork}
+      alt=""
+      imageClassName="w-full h-full object-cover"
+      fallback={<div className="w-full h-full bg-secondary" />}
+      cacheGeneration={artworkGeneration}
+    />
+  );
+
+  if (distinctCandidates.length >= 4) {
+    return (
+      <div ref={containerRef} className="grid grid-cols-2 grid-rows-2 w-full h-full bg-secondary">
+        {distinctCandidates.slice(0, 4).map((candidate, idx) =>
+          renderCandidate(candidate, `${candidate.track.id}-${idx}`)
+        )}
+      </div>
+    );
+  }
+
+  if (distinctCandidates.length >= 2) {
+    return (
+      <div ref={containerRef} className="grid grid-cols-2 w-full h-full bg-secondary">
+        {distinctCandidates.slice(0, 2).map((candidate, idx) =>
+          renderCandidate(candidate, `${candidate.track.id}-${idx}`)
+        )}
+      </div>
+    );
+  }
+
+  if (distinctCandidates.length === 1 && (distinctCandidates[0].artwork || albumTracks.length === 1)) {
+    return (
+      <div ref={containerRef} className="w-full h-full">
+        <LazyArtwork
+          filePath={distinctCandidates[0].track.filePath}
+          initialArtwork={distinctCandidates[0].artwork}
+          alt={artist.artistName}
+          imageClassName="w-full h-full object-cover"
+          fallback={renderArtistFallback(artist.artistName)}
+          cacheGeneration={artworkGeneration}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="w-full h-full">
+      {renderArtistFallback(artist.artistName)}
+    </div>
+  );
+};
 
 export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
   tracks,
@@ -333,81 +499,8 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
     });
   };
 
-  const renderArtistFallback = (artistName: string) => {
-    const initials = artistName
-      .split(' ')
-      .map((w) => w[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase();
-
-    return (
-      <div className="w-full h-full bg-gradient-to-br from-emerald-900/40 via-emerald-800/20 to-background flex flex-col items-center justify-center text-primary relative overflow-hidden">
-        <Disc className="w-16 h-16 opacity-20 absolute -right-3 -bottom-3 rotate-12" />
-        <span className="font-extrabold text-2xl tracking-widest text-primary/80 select-none">
-          {initials || <Music className="w-8 h-8 opacity-60" />}
-        </span>
-      </div>
-    );
-  };
-
   const renderArtistArtwork = (artist: ArtistGroup) => {
-    // Artwork is selected from one representative track per album. This
-    // preserves the existing artist mosaic while allowing the image itself to
-    // be fetched lazily rather than loading every track's cover.
-    const candidates = artist.albums
-      .map((album) => {
-        const track = album.tracks[0];
-        return track ? { track, artwork: album.artwork } : null;
-      })
-      .filter((candidate): candidate is { track: Track; artwork: AlbumGroup['artwork'] } => Boolean(candidate))
-      .slice(0, 4);
-
-    const renderCandidate = (
-      candidate: { track: Track; artwork: AlbumGroup['artwork'] },
-      key: string
-    ) => (
-      <LazyArtwork
-        key={key}
-        filePath={candidate.track.filePath}
-        initialArtwork={candidate.artwork}
-        alt=""
-        imageClassName="w-full h-full object-cover"
-        fallback={<div className="w-full h-full bg-secondary" />}
-        cacheGeneration={artworkGeneration}
-      />
-    );
-
-    if (candidates.length >= 4) {
-      return (
-        <div className="grid grid-cols-2 grid-rows-2 w-full h-full bg-secondary">
-          {candidates.map((candidate, idx) => renderCandidate(candidate, `${candidate.track.id}-${idx}`))}
-        </div>
-      );
-    }
-
-    if (candidates.length >= 2) {
-      return (
-        <div className="grid grid-cols-2 w-full h-full bg-secondary">
-          {candidates.slice(0, 2).map((candidate, idx) => renderCandidate(candidate, `${candidate.track.id}-${idx}`))}
-        </div>
-      );
-    }
-
-    if (candidates.length === 1) {
-      return (
-        <LazyArtwork
-          filePath={candidates[0].track.filePath}
-          initialArtwork={candidates[0].artwork}
-          alt={artist.artistName}
-          imageClassName="w-full h-full object-cover"
-          fallback={renderArtistFallback(artist.artistName)}
-          cacheGeneration={artworkGeneration}
-        />
-      );
-    }
-
-    return renderArtistFallback(artist.artistName);
+    return <ArtistArtwork key={artist.artistName} artist={artist} artworkGeneration={artworkGeneration} />;
   };
 
   // Render album artwork cover

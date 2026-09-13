@@ -9,6 +9,7 @@ import {
   filterTracks,
   getTrackMetadataIssues,
   summarizeMetadataIssues,
+  getDistinctArtworkCandidates,
 } from '../src/utils/library-utils';
 
 const TEST_TRACKS: Track[] = [
@@ -181,5 +182,103 @@ describe('Hierarchical Mosaic Library Utilities', () => {
       'Missing album',
       'Invalid track count',
     ]);
+  });
+
+  describe('getDistinctArtworkCandidates', () => {
+    it('deduplicates identical artworks into a single candidate when an artist cover is shared across albums', () => {
+      const sharedArt = { format: 'image/jpeg', data: 'data:image/jpeg;base64,shared_artist_cover' };
+      const tracks: Track[] = [
+        {
+          ...TEST_TRACKS[0],
+          id: 's1',
+          artist: '070 Shake',
+          album: 'Modus Vivendi',
+          filePath: 'C:/Music/070 Shake/Modus Vivendi/01.mp3',
+          picture: sharedArt,
+        },
+        {
+          ...TEST_TRACKS[0],
+          id: 's2',
+          artist: '070 Shake',
+          album: 'You Can\'t Kill Me',
+          filePath: 'C:/Music/070 Shake/You Cant Kill Me/01.mp3',
+          picture: sharedArt,
+        },
+        {
+          ...TEST_TRACKS[0],
+          id: 's3',
+          artist: '070 Shake',
+          album: 'Petrichor',
+          filePath: 'C:/Music/070 Shake/Petrichor/01.mp3',
+          picture: sharedArt,
+        },
+      ];
+
+      const albums = groupTracksByAlbum(tracks);
+      expect(albums.length).toBe(3);
+
+      const candidates = getDistinctArtworkCandidates(albums);
+      expect(candidates.length).toBe(1);
+      expect(candidates[0].track.album).toBe('Modus Vivendi');
+      expect(candidates[0].artwork?.data).toBe('data:image/jpeg;base64,shared_artist_cover');
+    });
+
+    it('returns multiple candidates when albums have genuinely distinct artworks', () => {
+      const pinkFloydAlbums = groupTracksByAlbum(
+        TEST_TRACKS.filter((t) => t.artist === 'Pink Floyd')
+      );
+      expect(pinkFloydAlbums.length).toBe(2);
+
+      const candidates = getDistinctArtworkCandidates(pinkFloydAlbums);
+      expect(candidates.length).toBe(2);
+      expect(candidates[0].artwork?.data).toBe('data:image/jpeg;base64,dsotm');
+      expect(candidates[1].artwork?.data).toBe('data:image/jpeg;base64,wall1');
+    });
+
+    it('skips albums with duplicate artwork while preserving different ones in multi-album mosaics', () => {
+      const artA = { format: 'image/jpeg', data: 'data:image/jpeg;base64,cover_a' };
+      const artB = { format: 'image/jpeg', data: 'data:image/jpeg;base64,cover_b' };
+      const tracks: Track[] = [
+        { ...TEST_TRACKS[0], id: 'a1', album: 'Album 1', filePath: 'C:/Music/A/1.mp3', picture: artA },
+        { ...TEST_TRACKS[0], id: 'a2', album: 'Album 2', filePath: 'C:/Music/A/2.mp3', picture: artA },
+        { ...TEST_TRACKS[0], id: 'b1', album: 'Album 3', filePath: 'C:/Music/A/3.mp3', picture: artB },
+      ];
+
+      const albums = groupTracksByAlbum(tracks);
+      const candidates = getDistinctArtworkCandidates(albums);
+      expect(candidates.length).toBe(2);
+      expect(candidates[0].artwork?.data).toBe('data:image/jpeg;base64,cover_a');
+      expect(candidates[1].artwork?.data).toBe('data:image/jpeg;base64,cover_b');
+    });
+
+    it('filters out albums lacking artwork when other albums possess artwork', () => {
+      const artA = { format: 'image/jpeg', data: 'data:image/jpeg;base64,cover_a' };
+      const tracks: Track[] = [
+        { ...TEST_TRACKS[0], id: 'a1', album: 'Album 1', filePath: 'C:/Music/A/1.mp3', picture: artA },
+        { ...TEST_TRACKS[0], id: 'no_art', album: 'Album 2', filePath: 'C:/Music/A/2.mp3', picture: undefined },
+      ];
+
+      const albums = groupTracksByAlbum(tracks);
+      const candidates = getDistinctArtworkCandidates(albums);
+      expect(candidates.length).toBe(1);
+      expect(candidates[0].track.album).toBe('Album 1');
+    });
+
+    it('deduplicates correctly when artworks are provided via loadedArtworks Map', () => {
+      const tracks: Track[] = [
+        { ...TEST_TRACKS[0], id: 'u1', album: 'Album 1', filePath: 'C:/Music/A/1.mp3', picture: undefined },
+        { ...TEST_TRACKS[0], id: 'u2', album: 'Album 2', filePath: 'C:/Music/A/2.mp3', picture: undefined },
+      ];
+
+      const albums = groupTracksByAlbum(tracks);
+      const loadedMap = new Map([
+        ['C:/Music/A/1.mp3', { format: 'image/jpeg', data: 'data:image/jpeg;base64,same_art' }],
+        ['C:/Music/A/2.mp3', { format: 'image/jpeg', data: 'data:image/jpeg;base64,same_art' }],
+      ]);
+
+      const candidates = getDistinctArtworkCandidates(albums, loadedMap);
+      expect(candidates.length).toBe(1);
+      expect(candidates[0].artwork?.data).toBe('data:image/jpeg;base64,same_art');
+    });
   });
 });
