@@ -248,3 +248,64 @@ export function groupTracksByArtist(tracks: Track[]): ArtistGroup[] {
   return artists.sort((a, b) => a.artistName.localeCompare(b.artistName));
 }
 
+export interface ArtworkCandidate {
+  track: Track;
+  artwork?: EmbeddedArtwork;
+}
+
+/**
+ * Derives distinct artwork candidates from an artist's albums for mosaic rendering.
+ * When albums share identical cover art (e.g. after setting an artist-wide cover image,
+ * or when multi-disc / multiple releases share the same art), duplicates are deduplicated
+ * so the same image is never displayed multiple times side by side.
+ */
+export function getDistinctArtworkCandidates(
+  albums: AlbumGroup[],
+  loadedArtworks?: Map<string, EmbeddedArtwork | null>
+): ArtworkCandidate[] {
+  const candidates: ArtworkCandidate[] = [];
+  let allResolved = true;
+
+  for (const album of albums) {
+    const track = album.tracks[0];
+    if (!track) continue;
+
+    let artwork: EmbeddedArtwork | undefined;
+    if (loadedArtworks && loadedArtworks.has(track.filePath)) {
+      artwork = loadedArtworks.get(track.filePath) ?? undefined;
+    } else {
+      artwork = album.artwork || track.picture;
+      if (!artwork) {
+        allResolved = false;
+      }
+    }
+
+    candidates.push({ track, artwork });
+  }
+
+  // If any candidates have artwork, deduplicate by artwork data
+  const withArtwork = candidates.filter((c) => c.artwork?.data);
+  if (withArtwork.length > 0) {
+    const distinct: ArtworkCandidate[] = [];
+    const seenData = new Set<string>();
+
+    for (const c of withArtwork) {
+      const key = c.artwork!.data.trim();
+      if (!seenData.has(key)) {
+        seenData.add(key);
+        distinct.push(c);
+      }
+    }
+
+    return distinct.slice(0, 4);
+  }
+
+  // If all candidates have resolved and none have artwork, return empty list for fallback
+  if (allResolved && loadedArtworks && loadedArtworks.size > 0) {
+    return [];
+  }
+
+  // If artwork is still pending for some or all albums, return candidate tracks
+  return candidates.slice(0, 4);
+}
+

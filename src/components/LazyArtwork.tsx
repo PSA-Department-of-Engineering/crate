@@ -53,7 +53,7 @@ function pumpArtworkQueue(): void {
   }
 }
 
-function requestArtwork(filePath: string): Promise<EmbeddedArtwork | null> {
+export function requestArtwork(filePath: string): Promise<EmbeddedArtwork | null> {
   if (artworkCache.has(filePath)) {
     return Promise.resolve(artworkCache.get(filePath) ?? null);
   }
