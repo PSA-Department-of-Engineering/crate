@@ -108,7 +108,7 @@ export function createArtistMenuItems(
           tracks,
           'artist',
           artist.artistName,
-          customArtwork || artist.artworks[0]
+          customArtwork
         ),
       divider: !customArtwork || !handlers.onResetArtistCover,
     });

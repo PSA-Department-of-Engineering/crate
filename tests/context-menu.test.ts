@@ -227,4 +227,36 @@ describe('Responsive Context Menu Item Generators', () => {
       customArt
     );
   });
+
+  it('passes undefined (never album artwork) to onChangeCover when artist has no custom artwork (#98)', () => {
+    const handlers: ContextActionHandlers = {
+      onPlay: vi.fn(),
+      onPlayNext: vi.fn(),
+      onAddToQueue: vi.fn(),
+      onEditTags: vi.fn(),
+      onChangeCover: vi.fn(),
+      onResetArtistCover: vi.fn(),
+    };
+
+    const albumArt = { format: 'image/jpeg', data: 'data:image/jpeg;base64,album_art' };
+    const artistWithAlbumArt: ArtistGroup = {
+      ...SAMPLE_ARTIST,
+      artworks: [albumArt],
+    };
+
+    const items = createArtistMenuItems(artistWithAlbumArt, handlers, undefined);
+    const resetItem = items.find((i) => i.id === 'reset-artist-cover');
+    expect(resetItem).toBeUndefined();
+
+    const changeCoverItem = items.find((i) => i.id === 'change-artist-cover');
+    expect(changeCoverItem).toBeDefined();
+    changeCoverItem?.onClick();
+    // Must pass undefined for currentArtwork, NOT the album's artwork!
+    expect(handlers.onChangeCover).toHaveBeenCalledWith(
+      artistWithAlbumArt.tracks,
+      'artist',
+      'Pink Floyd',
+      undefined
+    );
+  });
 });

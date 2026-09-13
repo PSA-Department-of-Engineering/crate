@@ -138,20 +138,6 @@ const ArtistArtwork: React.FC<ArtistArtworkProps> = ({
   const [isNearViewport, setIsNearViewport] = useState<boolean>(false);
   const [loadedArtworks, setLoadedArtworks] = useState<Map<string, EmbeddedArtwork | null>>(new Map());
 
-  // If a custom artist artwork was set at app level, display it as a single full-card cover
-  if (customArtwork?.data) {
-    return (
-      <div className="w-full h-full">
-        <img
-          src={customArtwork.data}
-          alt={artist.artistName}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
-      </div>
-    );
-  }
-
   // Reset loaded artworks whenever cache generation changes (e.g. after tag/artwork edits)
   useEffect(() => {
     setLoadedArtworks(new Map());
@@ -172,7 +158,7 @@ const ArtistArtwork: React.FC<ArtistArtworkProps> = ({
   }, [albumTracks]);
 
   useEffect(() => {
-    if (hasAllInitialArtworks || !containerRef.current) {
+    if (customArtwork?.data || hasAllInitialArtworks || !containerRef.current) {
       setIsNearViewport(true);
       return;
     }
@@ -194,10 +180,10 @@ const ArtistArtwork: React.FC<ArtistArtworkProps> = ({
     observer.observe(containerRef.current);
 
     return () => observer.disconnect();
-  }, [hasAllInitialArtworks, artworkGeneration]);
+  }, [hasAllInitialArtworks, artworkGeneration, customArtwork?.data]);
 
   useEffect(() => {
-    if (!isNearViewport || hasAllInitialArtworks || albumTracks.length <= 1) return;
+    if (customArtwork?.data || !isNearViewport || hasAllInitialArtworks || albumTracks.length <= 1) return;
 
     let isMounted = true;
     const tracksToFetch = albumTracks.filter((c) => !c.artwork && c.track.filePath);
@@ -225,11 +211,25 @@ const ArtistArtwork: React.FC<ArtistArtworkProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [isNearViewport, hasAllInitialArtworks, albumTracks, artworkGeneration]);
+  }, [isNearViewport, hasAllInitialArtworks, albumTracks, artworkGeneration, customArtwork?.data]);
 
   const distinctCandidates = useMemo(() => {
     return getDistinctArtworkCandidates(artist.albums, loadedArtworks);
   }, [artist.albums, loadedArtworks]);
+
+  // If a custom artist artwork was set at app level, display it as a single full-card cover
+  if (customArtwork?.data) {
+    return (
+      <div ref={containerRef} className="w-full h-full">
+        <img
+          src={customArtwork.data}
+          alt={artist.artistName}
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      </div>
+    );
+  }
 
   const renderCandidate = (
     candidate: ArtworkCandidate,
@@ -450,7 +450,7 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
   const openArtistMenu = (e: React.MouseEvent, artist: ArtistGroup) => {
     e.preventDefault();
     e.stopPropagation();
-    const customArtwork = customArtistArtworks?.[artist.artistName.toLowerCase()];
+    const customArtwork = customArtistArtworks?.[artist.artistName.trim().toLowerCase()];
     const items = createArtistMenuItems(artist, actionHandlers, customArtwork);
     setContextMenu({
       isOpen: true,
@@ -526,7 +526,7 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
   };
 
   const renderArtistArtwork = (artist: ArtistGroup) => {
-    const customArtwork = customArtistArtworks?.[artist.artistName.toLowerCase()];
+    const customArtwork = customArtistArtworks?.[artist.artistName.trim().toLowerCase()];
     return (
       <ArtistArtwork
         key={artist.artistName}
