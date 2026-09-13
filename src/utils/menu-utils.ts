@@ -11,8 +11,9 @@ import {
   FolderOpen,
   Image as ImageIcon,
   Layers,
+  RotateCcw,
 } from 'lucide-react';
-import { Track, ArtistGroup, AlbumGroup } from '../models/types';
+import { Track, ArtistGroup, AlbumGroup, EmbeddedArtwork } from '../models/types';
 import { MenuItem } from '../components/ContextMenu';
 
 export interface ContextActionHandlers {
@@ -27,6 +28,7 @@ export interface ContextActionHandlers {
     name: string,
     currentArtwork?: ArtistGroup['artworks'][number]
   ) => void;
+  onResetArtistCover?: (artistName: string) => void;
   onAddToSync?: (scope: 'all' | 'playlists' | 'albums', names?: string[], tracks?: Track[]) => void;
   onExportPlaylist?: (name: string, tracks: Track[]) => void;
   onRevealInExplorer?: (filePath: string) => void;
@@ -35,7 +37,8 @@ export interface ContextActionHandlers {
 
 export function createArtistMenuItems(
   artist: ArtistGroup,
-  handlers: ContextActionHandlers
+  handlers: ContextActionHandlers,
+  customArtwork?: EmbeddedArtwork
 ): MenuItem[] {
   const tracks = artist.tracks;
   const sampleTrack = tracks[0];
@@ -94,14 +97,33 @@ export function createArtistMenuItems(
     });
   }
 
+  let spliceIndex = 5;
   if (handlers.onChangeCover) {
-    items.splice(5, 0, {
+    items.splice(spliceIndex, 0, {
       id: 'change-artist-cover',
       label: 'Change Artist Cover',
       icon: React.createElement(ImageIcon, { className: 'w-3.5 h-3.5' }),
-      onClick: () => handlers.onChangeCover!(tracks, 'artist', artist.artistName, artist.artworks[0]),
+      onClick: () =>
+        handlers.onChangeCover!(
+          tracks,
+          'artist',
+          artist.artistName,
+          customArtwork || artist.artworks[0]
+        ),
+      divider: !customArtwork || !handlers.onResetArtistCover,
+    });
+    spliceIndex += 1;
+  }
+
+  if (customArtwork && handlers.onResetArtistCover) {
+    items.splice(spliceIndex, 0, {
+      id: 'reset-artist-cover',
+      label: 'Reset Artist Cover',
+      icon: React.createElement(RotateCcw, { className: 'w-3.5 h-3.5' }),
+      onClick: () => handlers.onResetArtistCover!(artist.artistName),
       divider: true,
     });
+    spliceIndex += 1;
   }
 
   if (sampleTrack && handlers.onRevealInExplorer) {

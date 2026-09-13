@@ -198,4 +198,33 @@ describe('Responsive Context Menu Item Generators', () => {
     editAll?.onClick();
     expect(handlers.onEditTags).toHaveBeenCalledWith(selectedTracks);
   });
+
+  it('includes Reset Artist Cover item and passes custom artwork when artist has custom artwork', () => {
+    const customArt = { format: 'image/jpeg', data: 'data:image/jpeg;base64,custom_photo' };
+    const handlers: ContextActionHandlers = {
+      onPlay: vi.fn(),
+      onPlayNext: vi.fn(),
+      onAddToQueue: vi.fn(),
+      onEditTags: vi.fn(),
+      onChangeCover: vi.fn(),
+      onResetArtistCover: vi.fn(),
+    };
+
+    const items = createArtistMenuItems(SAMPLE_ARTIST, handlers, customArt);
+    const resetItem = items.find((i) => i.id === 'reset-artist-cover');
+    expect(resetItem).toBeDefined();
+    expect(resetItem?.label).toBe('Reset Artist Cover');
+    resetItem?.onClick();
+    expect(handlers.onResetArtistCover).toHaveBeenCalledWith('Pink Floyd');
+
+    const changeCoverItem = items.find((i) => i.id === 'change-artist-cover');
+    expect(changeCoverItem).toBeDefined();
+    changeCoverItem?.onClick();
+    expect(handlers.onChangeCover).toHaveBeenCalledWith(
+      SAMPLE_ARTIST.tracks,
+      'artist',
+      'Pink Floyd',
+      customArt
+    );
+  });
 });

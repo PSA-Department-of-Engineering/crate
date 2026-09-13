@@ -281,10 +281,19 @@ export const CoverArtEditorModal: React.FC<CoverArtEditorModalProps> = ({
     try {
       const artwork = createNormalizedArtwork();
       await onSave(artwork);
-      setSuccessMessage(`Cover saved to ${trackLabel}.`);
+      setSuccessMessage(
+        scope === 'artist'
+          ? `Custom artist cover updated for ${targetName}.`
+          : `Cover saved to ${trackLabel}.`
+      );
       window.setTimeout(onClose, 450);
     } catch (error: any) {
-      setErrorMessage(error?.message || 'Could not save the cover to the audio files.');
+      setErrorMessage(
+        error?.message ||
+          (scope === 'artist'
+            ? 'Could not save the custom artist cover.'
+            : 'Could not save the cover to the audio files.')
+      );
     } finally {
       setIsSaving(false);
     }
@@ -307,7 +316,9 @@ export const CoverArtEditorModal: React.FC<CoverArtEditorModalProps> = ({
               </h2>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              {targetName} · {trackLabel} will receive the new embedded cover.
+              {scope === 'artist'
+                ? `${targetName} · Updates Crate's custom artist cover without altering audio files or album artwork.`
+                : `${targetName} · ${trackLabel} will receive the new embedded cover.`}
             </p>
           </div>
           <button
@@ -439,7 +450,9 @@ export const CoverArtEditorModal: React.FC<CoverArtEditorModalProps> = ({
                 </button>
               </div>
               <p className="mt-2 text-[11px] text-muted-foreground">
-                The source is downloaded once, then the processed JPEG is stored in your music files.
+                {scope === 'artist'
+                  ? "The source is downloaded once, then stored in Crate's custom artist image library."
+                  : 'The source is downloaded once, then the processed JPEG is stored in your music files.'}
               </p>
             </section>
 
@@ -448,7 +461,11 @@ export const CoverArtEditorModal: React.FC<CoverArtEditorModalProps> = ({
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
                 <span>
                   {sourceData
-                    ? `Ready: ${sourceLabel || sourceFormat}. Drag the preview, adjust zoom, then save. All ${subjectLabel} tracks will carry this cover for car sync.`
+                    ? scope === 'artist'
+                      ? `Ready: ${sourceLabel || sourceFormat}. Drag the preview, adjust zoom, then save to display this custom artist artwork in Crate.`
+                      : `Ready: ${sourceLabel || sourceFormat}. Drag the preview, adjust zoom, then save. All ${subjectLabel} tracks will carry this cover for car sync.`
+                    : scope === 'artist'
+                    ? `This will update the custom artist artwork displayed in Crate for ${targetName}. Individual album covers and song files will remain untouched.`
                     : `This will replace the embedded cover on all ${trackLabel} belonging to this ${subjectLabel}.`}
                 </span>
               </div>

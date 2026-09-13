@@ -92,6 +92,8 @@ interface LibraryMosaicProps {
     name: string,
     currentArtwork?: ArtistGroup['artworks'][number]
   ) => void;
+  onResetArtistCover?: (artistName: string) => void;
+  customArtistArtworks?: Record<string, EmbeddedArtwork>;
   onAddToSync?: (scope: 'all' | 'playlists' | 'albums', names?: string[], tracks?: Track[]) => void;
   onExportPlaylist?: (name: string, tracks: Track[]) => void;
   onRevealInExplorer?: (filePath: string) => void;
@@ -124,12 +126,31 @@ const renderArtistFallback = (artistName: string) => {
 interface ArtistArtworkProps {
   artist: ArtistGroup;
   artworkGeneration: number;
+  customArtwork?: EmbeddedArtwork;
 }
 
-const ArtistArtwork: React.FC<ArtistArtworkProps> = ({ artist, artworkGeneration }) => {
+const ArtistArtwork: React.FC<ArtistArtworkProps> = ({
+  artist,
+  artworkGeneration,
+  customArtwork,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isNearViewport, setIsNearViewport] = useState<boolean>(false);
   const [loadedArtworks, setLoadedArtworks] = useState<Map<string, EmbeddedArtwork | null>>(new Map());
+
+  // If a custom artist artwork was set at app level, display it as a single full-card cover
+  if (customArtwork?.data) {
+    return (
+      <div className="w-full h-full">
+        <img
+          src={customArtwork.data}
+          alt={artist.artistName}
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      </div>
+    );
+  }
 
   // Reset loaded artworks whenever cache generation changes (e.g. after tag/artwork edits)
   useEffect(() => {
@@ -278,6 +299,8 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
   onAddToQueue,
   onEditTags,
   onChangeCover,
+  onResetArtistCover,
+  customArtistArtworks,
   onAddToSync,
   onExportPlaylist,
   onRevealInExplorer,
@@ -339,6 +362,7 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
         if (onEditTags) onEditTags(trks);
       },
       onChangeCover,
+      onResetArtistCover,
       onAddToSync,
       onExportPlaylist,
       onRevealInExplorer,
@@ -350,6 +374,7 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
       onAddToQueue,
       onEditTags,
       onChangeCover,
+      onResetArtistCover,
       onAddToSync,
       onExportPlaylist,
       onRevealInExplorer,
@@ -425,7 +450,8 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
   const openArtistMenu = (e: React.MouseEvent, artist: ArtistGroup) => {
     e.preventDefault();
     e.stopPropagation();
-    const items = createArtistMenuItems(artist, actionHandlers);
+    const customArtwork = customArtistArtworks?.[artist.artistName.toLowerCase()];
+    const items = createArtistMenuItems(artist, actionHandlers, customArtwork);
     setContextMenu({
       isOpen: true,
       position: { x: e.clientX, y: e.clientY },
@@ -500,7 +526,15 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
   };
 
   const renderArtistArtwork = (artist: ArtistGroup) => {
-    return <ArtistArtwork key={artist.artistName} artist={artist} artworkGeneration={artworkGeneration} />;
+    const customArtwork = customArtistArtworks?.[artist.artistName.toLowerCase()];
+    return (
+      <ArtistArtwork
+        key={artist.artistName}
+        artist={artist}
+        artworkGeneration={artworkGeneration}
+        customArtwork={customArtwork}
+      />
+    );
   };
 
   // Render album artwork cover

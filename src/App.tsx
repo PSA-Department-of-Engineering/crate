@@ -15,9 +15,11 @@ import { CoverArtEditorModal, CoverArtScope } from './components/CoverArtEditorM
 import { useLibrary } from './hooks/useLibrary';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useSync } from './hooks/useSync';
-import { Track } from './models/types';
+import { Track, EmbeddedArtwork, CustomArtistArtworks } from './models/types';
 import { getOrganizationRelativePath } from './utils/organization-path';
 import { applyTheme, getStoredTheme, isThemeName, THEME_STORAGE_KEY, ThemeName } from './theme';
+
+const CUSTOM_ARTIST_ARTWORKS_STORAGE_KEY = 'crate_custom_artist_artworks';
 
 export const App: React.FC = () => {
   const isUndockedWindow = typeof window !== 'undefined' && window.location.hash === '#undocked-player';
@@ -36,6 +38,17 @@ export const App: React.FC = () => {
     currentArtwork?: Track['picture'];
   } | null>(null);
   const [theme, setTheme] = useState<ThemeName>(getStoredTheme);
+  const [customArtistArtworks, setCustomArtistArtworks] = useState<CustomArtistArtworks>(() => {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(CUSTOM_ARTIST_ARTWORKS_STORAGE_KEY);
+        if (raw) return JSON.parse(raw) as CustomArtistArtworks;
+      } catch {
+        // Fallback to empty map
+      }
+    }
+    return {};
+  });
 
   const library = useLibrary();
   const player = useAudioPlayer();
@@ -50,18 +63,23 @@ export const App: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
 
-    const loadTheme = async () => {
+    const loadSettings = async () => {
       try {
         const settings = await window.crateBridge?.getSettings?.();
-        if (isMounted && settings && isThemeName(settings.theme)) {
-          setTheme(settings.theme);
+        if (isMounted && settings) {
+          if (isThemeName(settings.theme)) {
+            setTheme(settings.theme);
+          }
+          if (settings.customArtistArtworks && typeof settings.customArtistArtworks === 'object') {
+            setCustomArtistArtworks(settings.customArtistArtworks as CustomArtistArtworks);
+          }
         }
       } catch (err) {
-        console.error('Failed to load theme:', err);
+        console.error('Failed to load settings:', err);
       }
     };
 
-    void loadTheme();
+    void loadSettings();
     return () => {
       isMounted = false;
     };
@@ -143,12 +161,44 @@ export const App: React.FC = () => {
     setCoverEditRequest({ tracks: tracksToEdit, scope, targetName, currentArtwork });
   };
 
+  const persistCustomArtistArtworks = (nextArtworks: CustomArtistArtworks) => {
+    setCustomArtistArtworks(nextArtworks);
+    try {
+      localStorage.setItem(
+        CUSTOM_ARTIST_ARTWORKS_STORAGE_KEY,
+        JSON.stringify(nextArtworks)
+      );
+    } catch {
+      // Ignored if localStorage unavailable
+    }
+    void window.crateBridge?.saveSettings?.({ customArtistArtworks: nextArtworks });
+  };
+
   const handleSaveCover = async (artwork: Track['picture']) => {
     if (!coverEditRequest || !artwork) return;
+
+    if (coverEditRequest.scope === 'artist') {
+      const key = coverEditRequest.targetName.trim().toLowerCase();
+      const nextArtworks: CustomArtistArtworks = {
+        ...customArtistArtworks,
+        [key]: artwork,
+      };
+      persistCustomArtistArtworks(nextArtworks);
+      return;
+    }
+
     await library.batchUpdateTags(
       coverEditRequest.tracks.map((track) => track.filePath),
       { picture: artwork }
     );
+  };
+
+  const handleResetArtistCover = (artistName: string) => {
+    const key = artistName.trim().toLowerCase();
+    if (!customArtistArtworks[key]) return;
+    const nextArtworks: CustomArtistArtworks = { ...customArtistArtworks };
+    delete nextArtworks[key];
+    persistCustomArtistArtworks(nextArtworks);
   };
 
   const handleAddToSync = (scope: 'all' | 'playlists' | 'albums', names?: string[]) => {
@@ -239,6 +289,8 @@ export const App: React.FC = () => {
           onAddToQueue={player.addToQueue}
           onEditTags={handleEditTags}
           onChangeCover={handleChangeCover}
+          onResetArtistCover={handleResetArtistCover}
+          customArtistArtworks={customArtistArtworks}
           onAddToSync={handleAddToSync}
           onRevealInExplorer={handleRevealInExplorer}
           onCopyPath={handleCopyPath}
