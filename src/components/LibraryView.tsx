@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LayoutGrid, List } from 'lucide-react';
-import { Track } from '../models/types';
+import { Track, EmbeddedArtwork } from '../models/types';
 import { SortField, SortDirection } from '../hooks/useLibrary';
 import { LibraryMosaic } from './LibraryMosaic';
 import { LibraryTable } from './LibraryTable';
@@ -28,6 +28,8 @@ interface LibraryViewProps {
     name: string,
     currentArtwork?: Track['picture']
   ) => void;
+  onResetArtistCover?: (artistName: string) => void;
+  customArtistArtworks?: Record<string, EmbeddedArtwork>;
   onAddToSync?: (scope: 'all' | 'playlists' | 'albums', names?: string[], tracks?: Track[]) => void;
   onExportPlaylist?: (name: string, tracks: Track[]) => void;
   onRevealInExplorer?: (filePath: string) => void;
@@ -53,6 +55,8 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   onAddToQueue,
   onEditTags,
   onChangeCover,
+  onResetArtistCover,
+  customArtistArtworks,
   onAddToSync,
   onExportPlaylist,
   onRevealInExplorer,
@@ -97,6 +101,8 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             onAddToQueue={onAddToQueue}
             onEditTags={onEditTags}
             onChangeCover={onChangeCover}
+            onResetArtistCover={onResetArtistCover}
+            customArtistArtworks={customArtistArtworks}
             onAddToSync={onAddToSync}
             onExportPlaylist={onExportPlaylist}
             onRevealInExplorer={onRevealInExplorer}

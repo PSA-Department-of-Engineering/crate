@@ -58,6 +58,20 @@ describe('Settings & AppData Storage Manager', () => {
     expect(updated.volume).toBe(0.8);
   });
 
+  it('persists and retrieves customArtistArtworks dictionary in settings (#96)', async () => {
+    const manager = new SettingsManagerService(tempConfigFile);
+    const customArtworks = {
+      'pink floyd': { format: 'image/jpeg', data: 'data:image/jpeg;base64,floyd_cover' },
+      'daft punk': { format: 'image/png', data: 'data:image/png;base64,daft_cover' },
+    };
+
+    await manager.saveSettings({ customArtistArtworks: customArtworks });
+
+    const settings = await manager.getSettings();
+    expect(settings.customArtistArtworks).toEqual(customArtworks);
+    expect(settings.customArtistArtworks['pink floyd'].data).toBe('data:image/jpeg;base64,floyd_cover');
+  });
+
   it('handles corrupted JSON in config.json gracefully without crashing', async () => {
     fs.writeFileSync(tempConfigFile, '{ corrupted json :::: ');
     const manager = new SettingsManagerService(tempConfigFile);

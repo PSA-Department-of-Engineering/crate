@@ -138,6 +138,8 @@ export interface Playlist {
   updatedAt: number;
 }
 
+export type CustomArtistArtworks = Record<string, EmbeddedArtwork>;
+
 export interface CrateBridge {
   isElectron: boolean;
   selectLibraryFolder: () => Promise<string | null>;
