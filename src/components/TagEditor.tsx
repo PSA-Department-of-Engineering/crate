@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Tag,
   Save,
@@ -71,8 +71,19 @@ export const TagEditor: React.FC<TagEditorProps> = ({
     }
   };
 
+  // Stable selection key representing the identities of the tracks being edited.
+  // Using selection identity prevents playback timer ticks (which re-render the
+  // player and top-level app) from wiping uncommitted edits while typing.
+  const selectionKey = selectedTracks.map(t => `${t.id}:${t.filePath}`).join('|');
+  const prevSelectionKeyRef = useRef<string | null>(null);
+
   // Sync state when selected tracks change
   useEffect(() => {
+    if (prevSelectionKeyRef.current === selectionKey) {
+      return;
+    }
+    prevSelectionKeyRef.current = selectionKey;
+
     setStatusMessage(null);
     setArtworkChanged(false);
 
@@ -132,7 +143,7 @@ export const TagEditor: React.FC<TagEditorProps> = ({
       setTotalDiscs('');
       setArtworkData(null);
     }
-  }, [singleTrack, isBatch, selectedTracks]);
+  }, [selectionKey, singleTrack, isBatch, selectedTracks]);
 
   const handleArtworkUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -218,7 +229,7 @@ export const TagEditor: React.FC<TagEditorProps> = ({
         await onSaveSingle(singleTrack.filePath, tagUpdates);
         setStatusMessage({
           type: 'success',
-          text: `Successfully saved tags to ${singleTrack.title}.`,
+          text: `Successfully saved tags to ${tagUpdates.title || singleTrack.title}.`,
         });
       }
     } catch (err: any) {
