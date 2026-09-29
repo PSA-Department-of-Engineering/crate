@@ -12,14 +12,7 @@ describe('Distribution Contract & Visual Theme Tokens', () => {
     expect(installDoc).toContain('Crate-Portable-1.0.0.exe');
   });
 
-  intent('INT-DIST-002', 'Packaging contract produces a portable executable and an NSIS installer without auto-updaters', async () => {
-    // Contract: no auto-updater dependency is present
-    const pkgJson = JSON.parse(await fs.promises.readFile(path.join(process.cwd(), 'package.json'), 'utf-8'));
-    const allDeps = { ...pkgJson.dependencies, ...pkgJson.devDependencies };
-
-    expect(allDeps['electron-updater']).toBeUndefined();
-    expect(allDeps['update-electron-app']).toBeUndefined();
-
+  intent('INT-DIST-002', 'Packaging contract produces a portable executable and an NSIS installer', async () => {
     // Contract: electron-builder emits BOTH a portable exe and an NSIS setup
     // installer, and the installer is non-oneClick with a user-chosen directory
     const builderYaml = await fs.promises.readFile(path.join(process.cwd(), 'electron-builder.yml'), 'utf-8');
@@ -27,7 +20,30 @@ describe('Distribution Contract & Visual Theme Tokens', () => {
     expect(builderYaml).toContain('target: nsis');
     expect(builderYaml).toContain('oneClick: false');
     expect(builderYaml).toContain('allowToChangeInstallationDirectory: true');
-    expect(builderYaml).not.toContain('publish:');
+    expect(builderYaml).toContain('artifactName: Crate-Setup-${version}.${ext}');
+    expect(builderYaml).toContain('artifactName: Crate-Portable-${version}.${ext}');
+  });
+
+  intent('INT-DIST-003', "Packaging embeds this repository's releases as the update feed and CI uploads the Setup installer, blockmap and latest.yml to each release", async () => {
+    const pkgJson = JSON.parse(await fs.promises.readFile(path.join(process.cwd(), 'package.json'), 'utf-8'));
+    // electron-updater ships inside the app, so it must be a runtime dependency
+    expect(pkgJson.dependencies['electron-updater']).toBeDefined();
+    expect(pkgJson.devDependencies?.['electron-updater']).toBeUndefined();
+
+    // The feed is this repository's own releases (which requires it to be
+    // public), so there is no second repository and no extra token.
+    const builderYaml = await fs.promises.readFile(path.join(process.cwd(), 'electron-builder.yml'), 'utf-8');
+    expect(builderYaml).toContain('publish:');
+    expect(builderYaml).toContain('provider: github');
+    expect(builderYaml).toMatch(/^\s+repo: crate\s*$/m);
+
+    const workflow = await fs.promises.readFile(path.join(process.cwd(), '.github/workflows/build.yml'), 'utf-8');
+    expect(workflow).not.toContain('crate-releases');
+    expect(workflow).toContain('release/*.exe.blockmap');
+    expect(workflow).toContain('release/latest.yml');
+    // latest.yml goes up last, after the installer and blockmap it points at, so
+    // no client sees a version whose installer is still uploading.
+    expect(workflow.indexOf('release/latest.yml')).toBeGreaterThan(workflow.indexOf('release/*.exe.blockmap'));
   });
 
   intent('INT-UI-001', 'User interface adheres to locked visual identity tokens and Nunito typography', async () => {

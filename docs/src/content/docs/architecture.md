@@ -12,6 +12,16 @@ Crate enforces strict process boundary isolation between Electron main and rende
 - `sandbox: true`
 - Typed IPC through `window.crateBridge`
 
+## In-App Updates
+
+Installed builds update themselves from this repository's public GitHub
+releases (the repository must be public, since an installed app has no
+credential to read a private one). The main process checks shortly after launch and every 6 hours, downloads in the
+background, and installs when the app quits; once a download finishes the UI
+offers a non-blocking "Restart to update" prompt. Unpackaged runs and the
+portable build never self-update. This is the only background network request,
+and it sends no library data. See ADR-006.
+
 ## Library and Artwork Data
 
 The library database in Electron's user-data directory stores track metadata,

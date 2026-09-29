@@ -11,8 +11,13 @@ import {
   Check,
   Loader2,
   Palette,
+  Download,
+  RefreshCw,
 } from 'lucide-react';
 import { ThemeName } from '../theme';
+import { UpdateStatus } from '../models/types';
+import { describeUpdateStatus, canCheckForUpdates } from '../utils/update-status';
+import { version as appVersion } from '../../package.json';
 
 export interface SettingsModalProps {
   isOpen: boolean;
@@ -22,6 +27,10 @@ export interface SettingsModalProps {
   libraryPath: string | null;
   onChangeLibraryFolder: () => void;
   isScanning?: boolean;
+  /** Null outside the desktop shell, where there is nothing to update. */
+  updateStatus?: UpdateStatus | null;
+  onCheckForUpdates?: () => void;
+  onInstallUpdate?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -32,6 +41,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   libraryPath,
   onChangeLibraryFolder,
   isScanning = false,
+  updateStatus = null,
+  onCheckForUpdates,
+  onInstallUpdate,
 }) => {
   const [spotifySecret, setSpotifySecret] = useState<string>('');
   const [showSecret, setShowSecret] = useState<boolean>(false);
@@ -231,6 +243,52 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Section: Updates */}
+          {updateStatus && (
+            <div className="p-4 rounded-lg border border-border bg-secondary/30 space-y-3">
+              <div className="flex items-center gap-2">
+                <Download className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">Updates</h3>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Installed builds download new versions in the background and install them when you quit.
+              </p>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border border-border/80 bg-background/60">
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-medium text-foreground block">Crate v{appVersion}</span>
+                  <span className="text-[11px] text-muted-foreground block select-text" role="status">
+                    {describeUpdateStatus(updateStatus)}
+                  </span>
+                </div>
+                {updateStatus.state === 'ready' ? (
+                  <button
+                    type="button"
+                    onClick={onInstallUpdate}
+                    className="flex items-center justify-center gap-2 px-3.5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold rounded-lg shadow-sm transition-colors shrink-0"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Restart to update</span>
+                  </button>
+                ) : updateStatus.state !== 'disabled' ? (
+                  <button
+                    type="button"
+                    onClick={onCheckForUpdates}
+                    disabled={!canCheckForUpdates(updateStatus)}
+                    className="flex items-center justify-center gap-2 px-3.5 py-2 bg-secondary hover:bg-secondary/80 text-foreground border border-border disabled:opacity-50 text-xs font-semibold rounded-lg transition-colors shrink-0"
+                  >
+                    {updateStatus.state === 'checking' || updateStatus.state === 'downloading' ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    )}
+                    <span>Check for updates</span>
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          )}
 
           {/* Section 2: Spotify Integration */}
           <div className="p-4 rounded-lg border border-border bg-secondary/30 space-y-3">

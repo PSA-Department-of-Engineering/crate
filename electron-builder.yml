@@ -2,6 +2,14 @@ appId: dev.chaos-architect.crate
 productName: Crate
 directories:
     output: release
+# In-app updates (INT-DIST-003): installed builds read update metadata from this
+# repository's public GitHub releases. CI uploads the Setup installer, its
+# blockmap and latest.yml to each release. Requires the repository to be public,
+# since an installed app has no credential to read a private one.
+publish:
+    provider: github
+    owner: PSA-Department-of-Engineering
+    repo: crate
 files:
     - dist/**/*
     - dist-electron/**/*

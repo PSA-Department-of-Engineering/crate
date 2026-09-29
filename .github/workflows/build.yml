@@ -57,8 +57,14 @@ jobs:
               working-directory: release
               run: sha256sum *.exe > SHA256SUMS-windows.txt
 
+            # In-app updates (INT-DIST-003): installed builds read latest.yml from this
+            # release. It is uploaded last, after the installer and blockmap it points
+            # at, so a client never sees a version whose installer is still uploading.
             - if: steps.tag.outputs.tag != ''
               shell: bash
-              run: gh release upload "${{ steps.tag.outputs.tag }}" release/*.exe release/SHA256SUMS-windows.txt --clobber
+              run: |
+                  gh release upload "${{ steps.tag.outputs.tag }}" release/*.exe release/*.exe.blockmap release/SHA256SUMS-windows.txt --clobber
+                  gh release upload "${{ steps.tag.outputs.tag }}" release/latest.yml --clobber
               env:
                   GH_TOKEN: ${{ github.token }}
+

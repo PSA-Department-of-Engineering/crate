@@ -12,9 +12,11 @@ import { RulesModal } from './components/RulesModal';
 import { FixModal } from './components/FixModal';
 import { SettingsModal } from './components/SettingsModal';
 import { CoverArtEditorModal, CoverArtScope } from './components/CoverArtEditorModal';
+import { UpdateBanner } from './components/UpdateBanner';
 import { useLibrary } from './hooks/useLibrary';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useSync } from './hooks/useSync';
+import { useAppUpdater } from './hooks/useAppUpdater';
 import { Track, EmbeddedArtwork, CustomArtistArtworks } from './models/types';
 import { getOrganizationRelativePath } from './utils/organization-path';
 import { applyTheme, getStoredTheme, isThemeName, THEME_STORAGE_KEY, ThemeName } from './theme';
@@ -53,6 +55,7 @@ export const App: React.FC = () => {
   const library = useLibrary();
   const player = useAudioPlayer();
   const sync = useSync(library.tracks, library.playlists, library.albums);
+  const appUpdater = useAppUpdater();
 
   useEffect(() => {
     applyTheme(theme);
@@ -269,6 +272,15 @@ export const App: React.FC = () => {
         onDropToTagEditor={handleEditTags}
       />
 
+      {/* Downloaded update: offer a restart; it installs on quit either way */}
+      {appUpdater.showRestartPrompt && appUpdater.readyVersion && (
+        <UpdateBanner
+          version={appUpdater.readyVersion}
+          onRestart={appUpdater.installUpdate}
+          onLater={appUpdater.dismissPrompt}
+        />
+      )}
+
       {/* Main Content Area */}
       <main className="flex-1 flex overflow-hidden">
         {/* Keep browsing state and scroll offsets alive between pages. */}
@@ -447,6 +459,9 @@ export const App: React.FC = () => {
         libraryPath={library.libraryPath}
         onChangeLibraryFolder={handleOpenFolder}
         isScanning={library.isScanning}
+        updateStatus={appUpdater.status}
+        onCheckForUpdates={appUpdater.checkForUpdates}
+        onInstallUpdate={appUpdater.installUpdate}
       />
 
       {/* First-Launch / Missing Library Onboarding Modal */}
