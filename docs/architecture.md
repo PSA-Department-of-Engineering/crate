@@ -68,7 +68,7 @@ graph TD
 - A lightweight static containerized portal served on Foundry (`crate.chaos-architect.dev`) providing honest desktop prerequisite guidance, SmartScreen bypass documentation, and direct portable executable downloads with SHA-256 verification.
 
 ### 6. In-App Updates
-- **Feed**: Installed builds read updates from a separate public `crate-releases` repository, because the source repository is private and an installed app cannot authenticate to it. CI publishes the Setup installer, its blockmap, and `latest.yml` there after each release.
+- **Feed**: Installed builds read updates from this repository's public GitHub releases, so the repository must be public: an installed app has no credential to read a private one. CI uploads the Setup installer, its blockmap, and `latest.yml` to each release.
 - **Lifecycle**: `services/app-updater.ts` checks shortly after launch and every 6 hours, downloads in the background, and installs on quit. Once a download finishes the UI offers a non-blocking "Restart to update" prompt; "Later" still installs on quit.
 - **Scope**: Unpackaged runs and the portable build never self-update. The status reaches the renderer through the `window.crateBridge` update methods.
 
@@ -79,4 +79,4 @@ graph TD
 - [ADR-003: Deterministic Car-Compatible Filesystem Layout and Sanitization](file:///d:/code-repos/crate/docs/adrs/ADR-003-filesystem-organization.md)
 - [ADR-004: Incremental Delta Car Synchronization Engine](file:///d:/code-repos/crate/docs/adrs/ADR-004-car-sync-engine.md)
 - [ADR-005: Multi-Window Audio Player Undocking via IPC State Broadcasting](file:///d:/code-repos/crate/docs/adrs/ADR-005-multi-window-player.md)
-- [ADR-006: In-App Updates from a Public Releases Repository](file:///d:/code-repos/crate/docs/adrs/ADR-006-auto-update.md)
+- [ADR-006: In-App Updates from This Repository's Public Releases](file:///d:/code-repos/crate/docs/adrs/ADR-006-auto-update.md)

@@ -2,13 +2,14 @@ appId: dev.chaos-architect.crate
 productName: Crate
 directories:
     output: release
-# In-app updates (INT-DIST-003) read from a public releases repo, because this
-# repo is private and an installed app cannot authenticate to it. CI copies the
-# Setup installer, its blockmap and latest.yml there after each release.
+# In-app updates (INT-DIST-003): installed builds read update metadata from this
+# repository's public GitHub releases. CI uploads the Setup installer, its
+# blockmap and latest.yml to each release. Requires the repository to be public,
+# since an installed app has no credential to read a private one.
 publish:
     provider: github
     owner: PSA-Department-of-Engineering
-    repo: crate-releases
+    repo: crate
 files:
     - dist/**/*
     - dist-electron/**/*

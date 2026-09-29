@@ -394,7 +394,7 @@ INT-DIST-002:
 INT-DIST-003:
   version: 1.0.0
   status: active
-  statement: "An installed (NSIS) build checks the public releases repository shortly after launch and periodically while running, downloads a newer version in the background, installs it when the app quits, and offers a non-blocking restart-to-update prompt once it is downloaded; portable and unpackaged builds never self-update, and CI publishes the Setup installer, its blockmap and latest.yml to that repository."
+  statement: "An installed (NSIS) build checks this repository's public GitHub releases shortly after launch and periodically while running, downloads a newer version in the background, installs it when the app quits, and offers a non-blocking restart-to-update prompt once it is downloaded; portable and unpackaged builds never self-update, and CI uploads the Setup installer, its blockmap and latest.yml to each release."
   derived_from:
     - REQ-DIST-002
   test:
@@ -402,7 +402,7 @@ INT-DIST-003:
     component: AppUpdater
     type: behavior
   criticality: high
-  rationale: "Removes the manual download-and-reinstall cycle for installed users without interrupting playback. The feed is a separate public repository because the source repository is private and an installed app cannot authenticate to it. The portable build is excluded because it shares the installed app's feed and would otherwise install a second copy from the Setup installer."
+  rationale: "Removes the manual download-and-reinstall cycle for installed users without interrupting playback. The feed is this repository's own releases, so the repository must be public: an installed app has no credential to read a private one, and none can safely ship in the binary. The portable build is excluded because it shares the installed app's feed and would otherwise install a second copy from the Setup installer."
 
 INT-UI-001:
   version: 1.0.0

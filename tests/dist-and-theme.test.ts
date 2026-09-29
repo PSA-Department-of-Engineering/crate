@@ -24,30 +24,26 @@ describe('Distribution Contract & Visual Theme Tokens', () => {
     expect(builderYaml).toContain('artifactName: Crate-Portable-${version}.${ext}');
   });
 
-  intent('INT-DIST-003', 'Packaging embeds the public releases feed and CI publishes the Setup installer, blockmap and latest.yml to it', async () => {
+  intent('INT-DIST-003', "Packaging embeds this repository's releases as the update feed and CI uploads the Setup installer, blockmap and latest.yml to each release", async () => {
     const pkgJson = JSON.parse(await fs.promises.readFile(path.join(process.cwd(), 'package.json'), 'utf-8'));
     // electron-updater ships inside the app, so it must be a runtime dependency
     expect(pkgJson.dependencies['electron-updater']).toBeDefined();
     expect(pkgJson.devDependencies?.['electron-updater']).toBeUndefined();
 
-    // The feed is a separate public repo: the source repo is private, and an
-    // installed app cannot authenticate to it.
+    // The feed is this repository's own releases (which requires it to be
+    // public), so there is no second repository and no extra token.
     const builderYaml = await fs.promises.readFile(path.join(process.cwd(), 'electron-builder.yml'), 'utf-8');
     expect(builderYaml).toContain('publish:');
     expect(builderYaml).toContain('provider: github');
-    expect(builderYaml).toContain('repo: crate-releases');
+    expect(builderYaml).toMatch(/^\s+repo: crate\s*$/m);
 
     const workflow = await fs.promises.readFile(path.join(process.cwd(), '.github/workflows/build.yml'), 'utf-8');
-    expect(workflow).toContain('crate-releases');
-    expect(workflow).toContain('latest.yml');
-    expect(workflow).toContain('.blockmap');
-    // The portable exe cannot self-update, so it is not part of the feed upload
-    const feedStep = workflow.slice(workflow.indexOf('crate-releases'));
-    expect(feedStep).not.toContain('Crate-Portable');
-    // A release stays a draft until every file is uploaded, so no client can
-    // see a version whose installer or latest.yml is still missing.
-    expect(workflow.indexOf('--draft')).toBeGreaterThan(-1);
-    expect(workflow.indexOf('gh release upload "$TAG" --repo')).toBeLessThan(workflow.indexOf('--draft=false'));
+    expect(workflow).not.toContain('crate-releases');
+    expect(workflow).toContain('release/*.exe.blockmap');
+    expect(workflow).toContain('release/latest.yml');
+    // latest.yml goes up last, after the installer and blockmap it points at, so
+    // no client sees a version whose installer is still uploading.
+    expect(workflow.indexOf('release/latest.yml')).toBeGreaterThan(workflow.indexOf('release/*.exe.blockmap'));
   });
 
   intent('INT-UI-001', 'User interface adheres to locked visual identity tokens and Nunito typography', async () => {

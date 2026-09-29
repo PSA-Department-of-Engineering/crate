@@ -57,29 +57,14 @@ jobs:
               working-directory: release
               run: sha256sum *.exe > SHA256SUMS-windows.txt
 
+            # In-app updates (INT-DIST-003): installed builds read latest.yml from this
+            # release. It is uploaded last, after the installer and blockmap it points
+            # at, so a client never sees a version whose installer is still uploading.
             - if: steps.tag.outputs.tag != ''
               shell: bash
-              run: gh release upload "${{ steps.tag.outputs.tag }}" release/*.exe release/SHA256SUMS-windows.txt --clobber
+              run: |
+                  gh release upload "${{ steps.tag.outputs.tag }}" release/*.exe release/*.exe.blockmap release/SHA256SUMS-windows.txt --clobber
+                  gh release upload "${{ steps.tag.outputs.tag }}" release/latest.yml --clobber
               env:
                   GH_TOKEN: ${{ github.token }}
 
-            # In-app updates (INT-DIST-003): installed builds read their update
-            # feed from a public releases repo, because this repo is private and
-            # an installed app cannot authenticate to it. The release is created
-            # as a draft and only published once every file is uploaded, so a
-            # client never sees a version whose installer or latest.yml is missing.
-            - if: steps.tag.outputs.tag != ''
-              shell: bash
-              working-directory: release
-              env:
-                  GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
-                  TAG: ${{ steps.tag.outputs.tag }}
-              run: |
-                  if [ -z "$GH_TOKEN" ]; then
-                      echo "::warning::RELEASES_REPO_TOKEN is not set; not publishing the public update feed."
-                      exit 0
-                  fi
-                  repo="PSA-Department-of-Engineering/crate-releases"
-                  gh release create "$TAG" --repo "$repo" --title "$TAG" --notes "Crate $TAG" --draft || true
-                  gh release upload "$TAG" --repo "$repo" "Crate-Setup-${TAG#v}.exe" "Crate-Setup-${TAG#v}.exe.blockmap" latest.yml --clobber
-                  gh release edit "$TAG" --repo "$repo" --draft=false
