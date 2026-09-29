@@ -13,6 +13,6 @@
     },
     "devDependencies": {
         "@psa-department-of-engineering/vitest-intent": "^2.0.1",
-        "vitest": "^4.1.11"
+        "vitest": "^5.0.2"
     }
 }
