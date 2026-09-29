@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import * as path from 'path';
 import * as fs from 'fs';
 import { AudioMetadataService } from './services/audio-metadata';
@@ -7,10 +8,11 @@ import { LibraryDatabaseService } from './services/library-database';
 import { SyncManagerService } from './services/sync-manager';
 import { PlaylistExporterService } from './services/playlist-exporter';
 import { SettingsManagerService } from './services/settings-manager';
+import { AppUpdaterService, isPortableBuild } from './services/app-updater';
 import { fetchArtworkFromUrl } from './services/artwork-input';
 import { moveLibraryFile, validateLibraryMoveRequest } from './services/library-organizer';
 
-import { TagUpdates, Track, Playlist, SyncPlan } from '../src/models/types';
+import { TagUpdates, Track, Playlist, SyncPlan, UpdateStatus } from '../src/models/types';
 
 let mainWindow: BrowserWindow | null = null;
 let playerWindow: BrowserWindow | null = null;
@@ -20,6 +22,35 @@ const metadataService = new AudioMetadataService(path.join(app.getPath('userData
 const libraryScanner = new LibraryScannerService(metadataService, dbService);
 const syncManager = new SyncManagerService();
 const settingsManager = new SettingsManagerService();
+
+function appendAppLog(line: string) {
+  try {
+    fs.appendFileSync(path.join(app.getPath('userData'), 'app.log'), `${line}
+`);
+  } catch {}
+}
+
+function sendUpdateStatus(status: UpdateStatus) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('updater:status', status);
+  }
+}
+
+const appUpdater = new AppUpdaterService({
+  getUpdater: () => {
+    // A packaged app's console goes nowhere; keep update diagnostics in app.log.
+    autoUpdater.logger = {
+      info: message => appendAppLog(`[Updater] ${message}`),
+      warn: message => appendAppLog(`[Updater warn] ${message}`),
+      error: message => appendAppLog(`[Updater error] ${message}`),
+    };
+    return autoUpdater;
+  },
+  isPackaged: app.isPackaged,
+  isPortable: isPortableBuild(),
+  onStatus: sendUpdateStatus,
+  log: line => appendAppLog(`[Updater] ${line}`),
+});
 
 export function getAppIcon(): string | undefined {
   const possiblePaths = [
@@ -172,6 +203,7 @@ app.whenReady().then(() => {
     app.setAppUserModelId('dev.chaos-architect.crate');
   }
   createMainWindow();
+  appUpdater.start();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -271,6 +303,17 @@ ipcMain.handle('settings:get', async () => {
 
 ipcMain.handle('settings:save', async (_event, updates) => {
   return await settingsManager.saveSettings(updates);
+});
+
+// Auto-update handlers (INT-DIST-003)
+ipcMain.handle('updater:get-status', () => appUpdater.getStatus());
+
+ipcMain.handle('updater:check', async () => {
+  return await appUpdater.checkNow();
+});
+
+ipcMain.handle('updater:install', () => {
+  appUpdater.restartToUpdate();
 });
 
 // Tag editing handlers

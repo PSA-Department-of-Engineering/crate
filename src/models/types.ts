@@ -140,6 +140,19 @@ export interface Playlist {
 
 export type CustomArtistArtworks = Record<string, EmbeddedArtwork>;
 
+/**
+ * Lifecycle of the in-app updater (INT-DIST-003). `disabled` means this
+ * build never self-updates: a dev run, or the portable executable.
+ */
+export type UpdateStatus =
+  | { state: 'disabled'; reason: 'unpackaged' | 'portable' }
+  | { state: 'idle' }
+  | { state: 'checking' }
+  | { state: 'up-to-date' }
+  | { state: 'downloading'; version: string; percent: number }
+  | { state: 'ready'; version: string }
+  | { state: 'error'; message: string };
+
 export interface CrateBridge {
   isElectron: boolean;
   selectLibraryFolder: () => Promise<string | null>;
@@ -179,6 +192,10 @@ export interface CrateBridge {
   getSettings?: () => Promise<Record<string, any>>;
   saveSettings?: (updates: Record<string, any>) => Promise<Record<string, any>>;
   showInFolder?: (filePath: string) => Promise<void>;
+  getUpdateStatus?: () => Promise<UpdateStatus>;
+  checkForUpdates?: () => Promise<UpdateStatus>;
+  installUpdate?: () => Promise<void>;
+  onUpdateStatus?: (callback: (status: UpdateStatus) => void) => () => void;
   windowControl: (action: 'minimize' | 'maximize' | 'close') => void;
 }
 

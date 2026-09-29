@@ -379,9 +379,9 @@ INT-DIST-001:
   rationale: "Presents clear download instructions to web visitors without simulating impossible browser filesystem operations."
 
 INT-DIST-002:
-  version: 1.1.0
+  version: 2.0.0
   status: active
-  statement: "The release packaging pipeline produces both a portable Windows executable and an NSIS setup installer (non-oneClick, user-chosen install directory), each accompanied by SHA-256 checksums and SmartScreen installation documentation, and ships no auto-updater."
+  statement: "The release packaging pipeline produces both a portable Windows executable and an NSIS setup installer (non-oneClick, user-chosen install directory), each accompanied by SHA-256 checksums and SmartScreen installation documentation."
   derived_from:
     - REQ-DIST-002
   test:
@@ -389,7 +389,20 @@ INT-DIST-002:
     component: PackagingContract
     type: contract
   criticality: high
-  rationale: "Delivers verifiable desktop binaries in both portable and installer form, per-user and without elevation, with no automatic update daemon."
+  rationale: "Delivers verifiable desktop binaries in both portable and installer form. Version 2.0.0 drops the earlier 'ships no auto-updater' clause: in-app updating is now specified by INT-DIST-003, and only the installed build takes part in it."
+
+INT-DIST-003:
+  version: 1.0.0
+  status: active
+  statement: "An installed (NSIS) build checks the public releases repository shortly after launch and periodically while running, downloads a newer version in the background, installs it when the app quits, and offers a non-blocking restart-to-update prompt once it is downloaded; portable and unpackaged builds never self-update, and CI publishes the Setup installer, its blockmap and latest.yml to that repository."
+  derived_from:
+    - REQ-DIST-002
+  test:
+    scope: unit
+    component: AppUpdater
+    type: behavior
+  criticality: high
+  rationale: "Removes the manual download-and-reinstall cycle for installed users without interrupting playback. The feed is a separate public repository because the source repository is private and an installed app cannot authenticate to it. The portable build is excluded because it shares the installed app's feed and would otherwise install a second copy from the Setup installer."
 
 INT-UI-001:
   version: 1.0.0

@@ -8,6 +8,7 @@ import {
   PlayerState,
   CrateBridge,
   EmbeddedArtwork,
+  UpdateStatus,
 } from '../src/models/types';
 
 const bridge: CrateBridge = {
@@ -122,6 +123,26 @@ const bridge: CrateBridge = {
 
   showInFolder: async (filePath: string): Promise<void> => {
     await ipcRenderer.invoke('system:show-in-folder', filePath);
+  },
+
+  getUpdateStatus: async (): Promise<UpdateStatus> => {
+    return await ipcRenderer.invoke('updater:get-status');
+  },
+
+  checkForUpdates: async (): Promise<UpdateStatus> => {
+    return await ipcRenderer.invoke('updater:check');
+  },
+
+  installUpdate: async (): Promise<void> => {
+    await ipcRenderer.invoke('updater:install');
+  },
+
+  onUpdateStatus: (callback: (status: UpdateStatus) => void) => {
+    const subscription = (_event: any, status: UpdateStatus) => callback(status);
+    ipcRenderer.on('updater:status', subscription);
+    return () => {
+      ipcRenderer.removeListener('updater:status', subscription);
+    };
   },
 
   windowControl: (action: 'minimize' | 'maximize' | 'close') => {
