@@ -8,11 +8,11 @@
         "test": "vitest run"
     },
     "dependencies": {
-        "@astrojs/starlight": "^0.34.0",
-        "astro": "^5.7.0"
+        "@astrojs/starlight": "^0.42.4",
+        "astro": "^7.3.5"
     },
     "devDependencies": {
         "@psa-department-of-engineering/vitest-intent": "^2.0.1",
-        "vitest": "^1.6.0"
+        "vitest": "^4.1.11"
     }
 }
