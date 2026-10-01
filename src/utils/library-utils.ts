@@ -309,3 +309,20 @@ export function getDistinctArtworkCandidates(
   return candidates.slice(0, 4);
 }
 
+
+/**
+ * Builds the post-scan summary line, e.g.
+ * "Imported 4,812 tracks. 7 files could not be read."
+ *
+ * Unreadable files are kept in the track list as `isCorrupt` placeholders, so
+ * they are subtracted from the imported count rather than added to it.
+ */
+export function formatImportSummary(trackCount: number, corruptCount: number): string {
+  const imported = Math.max(0, trackCount - corruptCount);
+  const importedText = `Imported ${imported.toLocaleString('en-US')} ${imported === 1 ? 'track' : 'tracks'}.`;
+  if (corruptCount <= 0) {
+    return importedText;
+  }
+  const failedText = `${corruptCount.toLocaleString('en-US')} ${corruptCount === 1 ? 'file' : 'files'} could not be read.`;
+  return `${importedText} ${failedText}`;
+}

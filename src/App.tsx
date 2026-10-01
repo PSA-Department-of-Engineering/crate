@@ -13,6 +13,8 @@ import { FixModal } from './components/FixModal';
 import { SettingsModal } from './components/SettingsModal';
 import { CoverArtEditorModal, CoverArtScope } from './components/CoverArtEditorModal';
 import { UpdateBanner } from './components/UpdateBanner';
+import { ImportIssuesBanner } from './components/ImportIssuesBanner';
+import { ImportIssuesModal } from './components/ImportIssuesModal';
 import { useLibrary } from './hooks/useLibrary';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useSync } from './hooks/useSync';
@@ -33,6 +35,8 @@ export const App: React.FC = () => {
   const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
   const [showFixModal, setShowFixModal] = useState<boolean>(false);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
+  const [showImportIssuesModal, setShowImportIssuesModal] = useState<boolean>(false);
+  const [dismissedImportIssues, setDismissedImportIssues] = useState<string | null>(null);
   const [coverEditRequest, setCoverEditRequest] = useState<{
     tracks: Track[];
     scope: CoverArtScope;
@@ -56,6 +60,12 @@ export const App: React.FC = () => {
   const player = useAudioPlayer();
   const sync = useSync(library.tracks, library.playlists, library.albums);
   const appUpdater = useAppUpdater();
+
+  // A dismissed import notice stays hidden until a scan yields a different
+  // set of unreadable files.
+  const importIssuesKey = useMemo(() => library.corruptFiles.join('\n'), [library.corruptFiles]);
+  const showImportIssuesBanner =
+    library.corruptFiles.length > 0 && !library.isScanning && dismissedImportIssues !== importIssuesKey;
 
   useEffect(() => {
     applyTheme(theme);
@@ -281,6 +291,16 @@ export const App: React.FC = () => {
         />
       )}
 
+      {/* Post-scan notice: some files could not be read */}
+      {showImportIssuesBanner && (
+        <ImportIssuesBanner
+          trackCount={library.tracks.length}
+          corruptCount={library.corruptFiles.length}
+          onViewFiles={() => setShowImportIssuesModal(true)}
+          onDismiss={() => setDismissedImportIssues(importIssuesKey)}
+        />
+      )}
+
       {/* Main Content Area */}
       <main className="flex-1 flex overflow-hidden">
         {/* Keep browsing state and scroll offsets alive between pages. */}
@@ -435,6 +455,14 @@ export const App: React.FC = () => {
 
           return { updatedTrack: currentTrack };
         }}
+      />
+
+      {/* Files the last scan could not read */}
+      <ImportIssuesModal
+        isOpen={showImportIssuesModal}
+        onClose={() => setShowImportIssuesModal(false)}
+        corruptFiles={library.corruptFiles}
+        onShowInFolder={handleRevealInExplorer}
       />
 
       {/* Artist / Album Cover Editor */}
