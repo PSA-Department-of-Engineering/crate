@@ -49,7 +49,7 @@ export const WebFallbackView: React.FC<WebFallbackViewProps> = ({ onEnterDemo })
 
         {/* Honest Prerequisite Notice */}
         <div className="p-4 rounded-xl bg-card border border-border shadow-sm flex items-start gap-3.5">
-          <div className="p-2 bg-amber-500/10 rounded-lg text-amber-700 dark:text-amber-400 shrink-0">
+          <div className="p-2 bg-warning/10 rounded-lg text-warning shrink-0">
             <Info className="w-5 h-5" />
           </div>
           <div className="space-y-1 text-xs">

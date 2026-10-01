@@ -24,7 +24,13 @@
     --ring: 160 84% 39%;
     --secondary: 40 25% 93%;
     --secondary-foreground: 150 10% 25%;
+    --success: 162 90% 26%;
+    --success-foreground: 0 0% 100%;
     --theme-shadow: 40 20% 30%;
+    --warning: 26 90% 37%;
+    --warning-foreground: 0 0% 100%;
+    --info: 201 96% 32%;
+    --info-foreground: 0 0% 100%;
     color-scheme: light;
   }
 
@@ -49,7 +55,13 @@
     --ring: 160 76% 48%;
     --secondary: 218 18% 23%;
     --secondary-foreground: 210 24% 92%;
+    --success: 156 72% 67%;
+    --success-foreground: 220 28% 9%;
     --theme-shadow: 220 45% 4%;
+    --warning: 46 97% 65%;
+    --warning-foreground: 220 28% 9%;
+    --info: 199 95% 74%;
+    --info-foreground: 220 28% 9%;
     color-scheme: dark;
   }
 

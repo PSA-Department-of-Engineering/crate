@@ -11,22 +11,22 @@ interface RulesModalProps {
 const CATEGORY_LABELS: Record<RuleCategory, { label: string; color: string; icon: React.FC<{ className?: string }> }> = {
   filename: {
     label: 'Filename',
-    color: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+    color: 'bg-info/10 text-info border-info/20',
     icon: FileText,
   },
   tag: {
     label: 'Metadata Tag',
-    color: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+    color: 'bg-accent text-accent-foreground border-accent-foreground/20',
     icon: Tag,
   },
   structure: {
     label: 'Folder Structure',
-    color: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+    color: 'bg-warning/10 text-warning border-warning/20',
     icon: FolderTree,
   },
   cleanup: {
     label: 'Junk Cleanup',
-    color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+    color: 'bg-success/10 text-success border-success/20',
     icon: Trash2,
   },
 };

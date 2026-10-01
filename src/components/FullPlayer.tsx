@@ -81,7 +81,7 @@ export const FullPlayer: React.FC<FullPlayerProps> = ({
     <div className="flex-1 overflow-auto bg-card border border-border rounded-xl shadow-sm m-4 p-8 flex flex-col md:flex-row gap-8 items-center justify-center">
       {/* Left: Artwork & Main Track Details */}
       <div className="flex flex-col items-center max-w-md w-full text-center">
-        <div className="w-72 h-72 rounded-2xl bg-secondary border-2 border-border shadow-md overflow-hidden flex items-center justify-center relative mb-6">
+        <div className="w-72 h-72 rounded-xl bg-secondary border-2 border-border shadow-md overflow-hidden flex items-center justify-center relative mb-6">
           {currentTrack?.picture ? (
             <img
               src={currentTrack.picture.data}

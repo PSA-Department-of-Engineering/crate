@@ -293,7 +293,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* Section 2: Spotify Integration */}
           <div className="p-4 rounded-lg border border-border bg-secondary/30 space-y-3">
             <div className="flex items-center gap-2">
-              <Key className="w-4 h-4 text-emerald-500" />
+              <Key className="w-4 h-4 text-success" />
               <h3 className="text-sm font-semibold text-foreground">Spotify Integration</h3>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
@@ -336,8 +336,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : isSaved ? (
                     <>
-                      <Check className="w-3.5 h-3.5 text-emerald-500" />
-                      <span className="text-emerald-500">Saved</span>
+                      <Check className="w-3.5 h-3.5 text-success" />
+                      <span className="text-success">Saved</span>
                     </>
                   ) : (
                     <>
@@ -349,7 +349,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               {isSaved && (
-                <p className="text-[11px] text-emerald-500 flex items-center gap-1 mt-1 font-medium">
+                <p className="text-[11px] text-success flex items-center gap-1 mt-1 font-medium">
                   <Check className="w-3 h-3" /> Spotify secret saved locally
                 </p>
               )}

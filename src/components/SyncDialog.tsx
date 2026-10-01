@@ -104,7 +104,7 @@ export const SyncDialog: React.FC<SyncDialogProps> = ({
               Target Storage Volume
             </label>
             {volumes.length === 0 ? (
-              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-800 dark:text-amber-300">
+              <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg text-xs text-warning">
                 No removable USB/SD storage detected. Insert a flash drive and click Refresh.
               </div>
             ) : (
@@ -277,13 +277,13 @@ export const SyncDialog: React.FC<SyncDialogProps> = ({
               <div className="grid grid-cols-4 gap-3">
                 <div className="bg-card border border-border p-3 rounded-lg text-center">
                   <span className="text-[10px] uppercase font-bold text-muted-foreground block">New Tracks</span>
-                  <span className="text-lg font-bold text-emerald-600">
+                  <span className="text-lg font-bold text-success">
                     {syncPlan.items.filter(i => i.action === 'add').length}
                   </span>
                 </div>
                 <div className="bg-card border border-border p-3 rounded-lg text-center">
                   <span className="text-[10px] uppercase font-bold text-muted-foreground block">Updated</span>
-                  <span className="text-lg font-bold text-amber-600">
+                  <span className="text-lg font-bold text-warning">
                     {syncPlan.items.filter(i => i.action === 'update').length}
                   </span>
                 </div>
@@ -303,8 +303,8 @@ export const SyncDialog: React.FC<SyncDialogProps> = ({
 
               {/* Transcode Notice — only counts tracks actually being written this run */}
               {syncPlan.items.some(i => i.needsTranscode && i.action !== 'keep') && (
-                <div className="p-3 bg-sky-500/10 border border-sky-500/20 rounded-lg flex items-center gap-2 text-xs text-sky-800 dark:text-sky-300">
-                  <FileMusic className="w-4 h-4 text-sky-600 shrink-0" />
+                <div className="p-3 bg-info/10 border border-info/20 rounded-lg flex items-center gap-2 text-xs text-info">
+                  <FileMusic className="w-4 h-4 text-info shrink-0" />
                   <span>
                     <strong>
                       {syncPlan.items.filter(i => i.needsTranscode && i.action !== 'keep').length}
@@ -317,14 +317,14 @@ export const SyncDialog: React.FC<SyncDialogProps> = ({
 
               {/* Stale Files Alert */}
               {syncPlan.staleFiles.length > 0 && (
-                <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 text-rose-800 dark:text-rose-300">
-                    <Trash2 className="w-4 h-4 text-rose-600 shrink-0" />
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-destructive">
+                    <Trash2 className="w-4 h-4 text-destructive shrink-0" />
                     <span>
                       Found <strong>{syncPlan.staleFiles.length}</strong> orphaned tracks on USB not present in sync scope.
                     </span>
                   </div>
-                  <span className="text-xs font-bold text-rose-700 dark:text-rose-400">
+                  <span className="text-xs font-bold text-destructive">
                     {pruneStale ? 'Will be pruned' : 'Will be kept'}
                   </span>
                 </div>
@@ -347,9 +347,9 @@ export const SyncDialog: React.FC<SyncDialogProps> = ({
                           <span
                             className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold ${
                               item.action === 'add'
-                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                ? 'bg-success/15 text-success'
                                 : item.action === 'update'
-                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                ? 'bg-warning/15 text-warning'
                                 : 'bg-secondary text-muted-foreground'
                             }`}
                           >
@@ -360,7 +360,7 @@ export const SyncDialog: React.FC<SyncDialogProps> = ({
                           {item.targetRelativePath}
                           {item.needsTranscode && (
                             <span
-                              className="ml-1.5 px-1 py-0.5 rounded text-[9px] uppercase font-bold bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300"
+                              className="ml-1.5 px-1 py-0.5 rounded text-[9px] uppercase font-bold bg-info/15 text-info"
                               title="Converted to 16-bit FLAC on the drive; the WAV master stays on this PC"
                             >
                               →flac
@@ -411,11 +411,11 @@ export const SyncDialog: React.FC<SyncDialogProps> = ({
                 <div
                   className={`p-3 rounded-lg text-xs flex items-center gap-2 ${
                     syncResult.success
-                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-500/20'
-                      : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-500/20'
+                      ? 'bg-success/15 text-success border border-success/20'
+                      : 'bg-destructive/15 text-destructive border border-destructive/20'
                   }`}
                 >
-                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <CheckCircle className="w-4 h-4 text-success shrink-0" />
                   <span>
                     Sync completed! Transferred {syncResult.copied} files, removed {syncResult.deleted} stale tracks. M3U playlists written to drive root.
                   </span>
