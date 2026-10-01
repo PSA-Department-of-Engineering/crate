@@ -275,7 +275,7 @@ export const LibraryTable: React.FC<LibraryTableProps> = ({
                 <td colSpan={10} className="py-16 text-center text-muted-foreground">
                   {!libraryPath ? (
                     <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-3">
-                      <div className="p-3.5 bg-primary/10 rounded-2xl text-primary">
+                      <div className="p-3.5 bg-primary/10 rounded-xl text-primary">
                         <FolderOpen className="w-8 h-8" />
                       </div>
                       <div className="space-y-1">
@@ -396,8 +396,8 @@ export const LibraryTable: React.FC<LibraryTableProps> = ({
                       <span
                         className={`text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded ${
                           track.format === 'flac'
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                            ? 'bg-success/15 text-success'
+                            : 'bg-warning/15 text-warning'
                         }`}
                       >
                         {track.format}

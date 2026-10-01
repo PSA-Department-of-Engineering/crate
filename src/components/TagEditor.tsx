@@ -311,7 +311,7 @@ export const TagEditor: React.FC<TagEditorProps> = ({
         }`}
       >
         {backToLibraryButton}
-        <div className={`p-4 rounded-2xl mb-3 transition-colors ${isDragOver ? 'bg-primary/20 text-primary animate-bounce' : 'bg-secondary text-primary/60'}`}>
+        <div className={`p-4 rounded-xl mb-3 transition-colors ${isDragOver ? 'bg-primary/20 text-primary animate-bounce' : 'bg-secondary text-primary/60'}`}>
           <Tag className="w-10 h-10" />
         </div>
         <h3 className="text-lg font-bold text-foreground">
@@ -364,14 +364,14 @@ export const TagEditor: React.FC<TagEditorProps> = ({
             <div
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
                 statusMessage.type === 'success'
-                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                  : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                  ? 'bg-success/15 text-success'
+                  : 'bg-destructive/15 text-destructive'
               }`}
             >
               {statusMessage.type === 'success' ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <CheckCircle2 className="w-4 h-4 text-success" />
               ) : (
-                <AlertCircle className="w-4 h-4 text-rose-600" />
+                <AlertCircle className="w-4 h-4 text-destructive" />
               )}
               <span>{statusMessage.text}</span>
             </div>

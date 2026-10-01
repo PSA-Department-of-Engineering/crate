@@ -305,7 +305,7 @@ export const CoverArtEditorModal: React.FC<CoverArtEditorModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="cover-art-editor-title"
-        className="theme-popover flex max-h-[calc(100vh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-card text-foreground shadow-2xl"
+        className="theme-popover flex max-h-[calc(100vh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-card text-foreground shadow-2xl"
       >
         <div className="flex items-start justify-between border-b border-border px-5 py-4">
           <div>
@@ -458,7 +458,7 @@ export const CoverArtEditorModal: React.FC<CoverArtEditorModalProps> = ({
 
             <div className="rounded-xl border border-dashed border-border p-4 text-xs text-muted-foreground">
               <div className="flex items-start gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                 <span>
                   {sourceData
                     ? scope === 'artist'
@@ -478,7 +478,7 @@ export const CoverArtEditorModal: React.FC<CoverArtEditorModalProps> = ({
               </div>
             )}
             {successMessage && (
-              <div className="flex items-start gap-2 rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              <div className="flex items-start gap-2 rounded-lg bg-success/15 px-3 py-2 text-xs text-success">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{successMessage}</span>
               </div>

@@ -17,10 +17,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/70 backdrop-blur-md select-none">
-      <div className="w-full max-w-lg bg-card text-card-foreground border border-border shadow-2xl rounded-2xl p-8 flex flex-col items-center text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
+      <div className="w-full max-w-lg bg-card text-card-foreground border border-border shadow-2xl rounded-xl p-8 flex flex-col items-center text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
         {/* Brand Icon Header */}
         <div className="relative">
-          <BrandLogoMark className="w-16 h-16 shadow-lg rounded-2xl" />
+          <BrandLogoMark className="w-16 h-16 shadow-lg rounded-xl" />
         </div>
 
         {/* Title & Introduction */}

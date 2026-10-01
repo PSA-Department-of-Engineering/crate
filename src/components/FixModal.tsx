@@ -162,12 +162,12 @@ export const FixModal: React.FC<FixModalProps> = ({
           <div className="flex flex-col border border-border rounded-xl bg-card overflow-hidden shadow-sm">
             <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-500" />
+                <AlertCircle className="w-4 h-4 text-warning" />
                 <span className="text-xs font-bold text-foreground uppercase tracking-wider">
                   Affected Items (Current)
                 </span>
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-warning/10 text-warning border border-warning/20">
                 {violations.length} items
               </span>
             </div>
@@ -175,7 +175,7 @@ export const FixModal: React.FC<FixModalProps> = ({
             <div className="flex-1 overflow-y-auto divide-y divide-border/60 p-2">
               {violations.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center p-6 text-muted-foreground">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-500 mb-2 opacity-80" />
+                  <CheckCircle2 className="w-8 h-8 text-success mb-2 opacity-80" />
                   <p className="text-sm font-semibold text-foreground">All items compliant</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     No violations detected for active rules preset.
@@ -185,7 +185,7 @@ export const FixModal: React.FC<FixModalProps> = ({
                 violations.map((v) => (
                   <div key={v.id} className="p-3 rounded-lg hover:bg-secondary/40 transition-colors">
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                      <span className="text-[11px] font-semibold text-warning">
                         {v.ruleName}
                       </span>
                     </div>
@@ -205,12 +205,12 @@ export const FixModal: React.FC<FixModalProps> = ({
           <div className="flex flex-col border border-border rounded-xl bg-card overflow-hidden shadow-sm">
             <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <CheckCircle2 className="w-4 h-4 text-success" />
                 <span className="text-xs font-bold text-foreground uppercase tracking-wider">
                   Affected Items Output (Fixed)
                 </span>
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-success/10 text-success border border-success/20">
                 {violations.length} outputs
               </span>
             </div>
@@ -218,7 +218,7 @@ export const FixModal: React.FC<FixModalProps> = ({
             <div className="flex-1 overflow-y-auto divide-y divide-border/60 p-2">
               {violations.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center p-6 text-muted-foreground">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-500 mb-2 opacity-80" />
+                  <CheckCircle2 className="w-8 h-8 text-success mb-2 opacity-80" />
                   <p className="text-sm font-semibold text-foreground">No changes needed</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Your collection is already standardized.
@@ -228,12 +228,12 @@ export const FixModal: React.FC<FixModalProps> = ({
                 violations.map((v) => (
                   <div key={v.id} className="p-3 rounded-lg hover:bg-secondary/40 transition-colors">
                     <div className="flex items-center gap-1.5">
-                      <ArrowRight className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                      <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      <ArrowRight className="w-3.5 h-3.5 text-success shrink-0" />
+                      <span className="text-[11px] font-semibold text-success">
                         Proposed Output
                       </span>
                     </div>
-                    <div className="mt-1 font-mono text-xs bg-emerald-500/5 px-2 py-1 rounded border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-medium truncate">
+                    <div className="mt-1 font-mono text-xs bg-success/5 px-2 py-1 rounded border border-success/20 text-success font-medium truncate">
                       {v.proposedValue}
                     </div>
                     {v.proposedRenamePath && (
@@ -273,8 +273,8 @@ export const FixModal: React.FC<FixModalProps> = ({
               <div
                 className={`flex items-center justify-between text-xs font-semibold ${
                   fixErrors.length > 0
-                    ? 'text-amber-600 dark:text-amber-400'
-                    : 'text-emerald-600 dark:text-emerald-400'
+                    ? 'text-warning'
+                    : 'text-success'
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -293,8 +293,8 @@ export const FixModal: React.FC<FixModalProps> = ({
                   onClick={onClose}
                   className={`px-3 py-1 rounded-md transition-colors ${
                     fixErrors.length > 0
-                      ? 'bg-amber-500/10 hover:bg-amber-500/20'
-                      : 'bg-emerald-500/10 hover:bg-emerald-500/20'
+                      ? 'bg-warning/10 hover:bg-warning/20'
+                      : 'bg-success/10 hover:bg-success/20'
                   }`}
                 >
                   Done
@@ -302,11 +302,11 @@ export const FixModal: React.FC<FixModalProps> = ({
               </div>
 
               {fixErrors.length > 0 && (
-                <ul className="max-h-24 overflow-y-auto space-y-1 rounded-md bg-amber-500/5 p-2">
+                <ul className="max-h-24 overflow-y-auto space-y-1 rounded-md bg-warning/5 p-2">
                   {fixErrors.map((e) => (
                     <li
                       key={e.violationId}
-                      className="text-[11px] text-amber-700 dark:text-amber-300 font-mono break-all"
+                      className="text-[11px] text-warning font-mono break-all"
                     >
                       {e.error}
                     </li>

@@ -26,7 +26,7 @@ export const ImportIssuesModal: React.FC<ImportIssuesModalProps> = ({
         {/* Header */}
         <div className="px-6 py-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-amber-500/10 text-amber-500 rounded-lg">
+            <div className="p-2 bg-warning/10 text-warning rounded-lg">
               <AlertTriangle className="w-5 h-5" />
             </div>
             <div>

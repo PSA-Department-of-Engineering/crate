@@ -55,6 +55,48 @@ describe('Distribution Contract & Visual Theme Tokens', () => {
     expect(indexCss).toContain('--popover: 40 30% 98%');
     expect(indexCss).toContain('--radius: 0.75rem');
     expect(indexCss).toContain("'Nunito'");
+    for (const state of ['success', 'warning', 'info']) {
+      expect(indexCss).toContain(`--${state}:`);
+      expect(indexCss).toContain(`--${state}-foreground:`);
+    }
+
+    // Every sanctioned radius is wired to the --radius token
+    const tailwindConfig = await fs.promises.readFile(path.join(process.cwd(), 'tailwind.config.js'), 'utf-8');
+    for (const size of ['DEFAULT', 'md', 'lg', 'xl']) {
+      expect(tailwindConfig).toMatch(new RegExp(`\\b${size}: 'var\\(--radius\\)'`));
+    }
+    for (const state of ['success', 'warning', 'info']) {
+      expect(tailwindConfig).toContain(`DEFAULT: 'hsl(var(--${state}))'`);
+    }
+
+    // Components use only those tokens: no raw color scales, no hex, no
+    // arbitrary color or radius values, no radius outside the token set.
+    const banned: Array<[RegExp, string]> = [
+      [/\b(?:bg|text|border|ring|from|via|to|fill|stroke|shadow|outline|divide|placeholder|decoration|caret|accent)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d+/, 'raw color scale'],
+      [/-\[(?:#|rgb|hsl)/, 'arbitrary color value'],
+      [/\brounded(?:-[trblse]{1,2})?-(?:sm|2xl|3xl|\[)/, 'radius outside the --radius token'],
+      [/\bdark:/, 'OS dark: variant (themes swap tokens instead)'],
+      [/#[0-9a-fA-F]{3,8}\b/, 'hex color literal'],
+    ];
+    // Not UI chrome: the fixed brand mark, and the JPEG canvas background
+    const allowed = [
+      ['BrandLogo.tsx', '#FFFFFF'],
+      ['CoverArtEditorModal.tsx', "context.fillStyle = '#ffffff'"],
+    ];
+    const componentsDir = path.join(process.cwd(), 'src/components');
+    const offenders: string[] = [];
+    for (const file of await fs.promises.readdir(componentsDir)) {
+      if (!file.endsWith('.tsx')) continue;
+      const lines = (await fs.promises.readFile(path.join(componentsDir, file), 'utf-8')).split('\n');
+      lines.forEach((line, i) => {
+        if (allowed.some(([f, text]) => f === file && line.includes(text))) return;
+        for (const [pattern, reason] of banned) {
+          const hit = line.match(pattern);
+          if (hit) offenders.push(`${file}:${i + 1} ${reason}: ${hit[0]}`);
+        }
+      });
+    }
+    expect(offenders).toEqual([]);
   });
 
   it('Header and WebFallbackView components render dynamic version from package.json without hardcoded version strings', async () => {

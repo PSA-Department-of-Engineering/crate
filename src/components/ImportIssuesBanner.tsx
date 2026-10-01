@@ -22,10 +22,10 @@ export const ImportIssuesBanner: React.FC<ImportIssuesBannerProps> = ({
   return (
     <div
       role="status"
-      className="flex items-center justify-between gap-3 px-4 py-2 bg-amber-500/10 border-b border-amber-500/20 text-xs select-none"
+      className="flex items-center justify-between gap-3 px-4 py-2 bg-warning/10 border-b border-warning/20 text-xs select-none"
     >
       <div className="flex items-center gap-2 min-w-0">
-        <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+        <AlertTriangle className="w-3.5 h-3.5 text-warning shrink-0" />
         <span className="font-semibold text-foreground truncate">
           {formatImportSummary(trackCount, corruptCount)}
         </span>

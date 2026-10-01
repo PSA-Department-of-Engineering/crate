@@ -40,12 +40,29 @@ export default {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
         },
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))',
+        },
+        warning: {
+          DEFAULT: 'hsl(var(--warning))',
+          foreground: 'hsl(var(--warning-foreground))',
+        },
+        info: {
+          DEFAULT: 'hsl(var(--info))',
+          foreground: 'hsl(var(--info-foreground))',
+        },
       },
       fontFamily: {
         sans: ['Nunito', 'system-ui', 'sans-serif'],
       },
+      // Every sanctioned radius resolves to the locked --radius token;
+      // rounded-sm/2xl/3xl and arbitrary radii are banned (INT-UI-001).
       borderRadius: {
-        DEFAULT: '0.75rem',
+        DEFAULT: 'var(--radius)',
+        md: 'var(--radius)',
+        lg: 'var(--radius)',
+        xl: 'var(--radius)',
       },
     },
   },

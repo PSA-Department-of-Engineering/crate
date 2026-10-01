@@ -28,9 +28,19 @@ Crate features a warm editorial aesthetic tailored for desktop audio management 
     --ring: 160 84% 39%;
     --secondary: 40 25% 93%;
     --secondary-foreground: 150 10% 25%;
+    --success: 162 90% 26%;
+    --success-foreground: 0 0% 100%;
+    --warning: 26 90% 37%;
+    --warning-foreground: 0 0% 100%;
+    --info: 201 96% 32%;
+    --info-foreground: 0 0% 100%;
     --font-sans: 'Nunito', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 ```
+
+### Token usage in components
+
+Components use only the semantic tokens above, never raw Tailwind color scales (`emerald-*`, `amber-*`, `sky-*`, `rose-*`, ...), hex literals, or arbitrary color values. Status states map to `success` (done, saved, matched), `warning` (needs attention), `info` (neutral notice) and `destructive` (error, deletion). Plain `black`/`white` are allowed only as scrims and contrast marks over album artwork. Radii are `rounded`, `rounded-md`, `rounded-lg` and `rounded-xl`, all wired to `--radius`, plus `rounded-full` for pills and circles. The `INT-UI-001` test fails on any other color or radius in `src/components`.
 
 ## Typography
 

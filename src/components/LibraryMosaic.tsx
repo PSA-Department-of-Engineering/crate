@@ -47,7 +47,7 @@ const MetadataIssueBadge: React.FC<MetadataIssueBadgeProps> = ({ tracks, onEditT
   const issueLabel = issueTypes.join(', ');
   const label = `${songLabel}: ${issueLabel}`;
   const className =
-    'absolute top-2 left-2 z-10 inline-flex items-center gap-1 rounded-full border border-amber-300/70 bg-background/90 px-2 py-1 text-[10px] font-bold text-amber-700 shadow-sm backdrop-blur-sm dark:border-amber-500/40 dark:text-amber-300';
+    'absolute top-2 left-2 z-10 inline-flex items-center gap-1 rounded-full border border-warning/70 bg-background/90 px-2 py-1 text-[10px] font-bold text-warning shadow-sm backdrop-blur-sm';
 
   if (onEditTags) {
     return (
@@ -57,7 +57,7 @@ const MetadataIssueBadge: React.FC<MetadataIssueBadgeProps> = ({ tracks, onEditT
           e.stopPropagation();
           onEditTags(affectedTracks);
         }}
-        className={`${className} cursor-pointer transition-colors hover:bg-amber-50 dark:hover:bg-amber-950/50`}
+        className={`${className} cursor-pointer transition-colors hover:bg-warning/10`}
         title={`${label}. Click to open Tag Editor.`}
         aria-label={`${label}. Open Tag Editor.`}
       >
@@ -114,7 +114,7 @@ const renderArtistFallback = (artistName: string) => {
     .toUpperCase();
 
   return (
-    <div className="w-full h-full bg-gradient-to-br from-emerald-900/40 via-emerald-800/20 to-background flex flex-col items-center justify-center text-primary relative overflow-hidden">
+    <div className="w-full h-full bg-gradient-to-br from-primary/40 via-primary/20 to-background flex flex-col items-center justify-center text-primary relative overflow-hidden">
       <Disc className="w-16 h-16 opacity-20 absolute -right-3 -bottom-3 rotate-12" />
       <span className="font-extrabold text-2xl tracking-widest text-primary/80 select-none">
         {initials || <Music className="w-8 h-8 opacity-60" />}
@@ -691,7 +691,7 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
           <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
             {!libraryPath ? (
               <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-4">
-                <div className="p-4 bg-primary/10 rounded-2xl text-primary">
+                <div className="p-4 bg-primary/10 rounded-xl text-primary">
                   <FolderOpen className="w-10 h-10" />
                 </div>
                 <div className="space-y-1">
@@ -873,7 +873,7 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
           /* Level 3: Album Detail & Songs View */
           <div className="space-y-6">
             {/* Album Header Banner */}
-            <div className="flex flex-col md:flex-row items-start md:items-end gap-6 bg-card border border-border p-6 rounded-2xl shadow-sm">
+            <div className="flex flex-col md:flex-row items-start md:items-end gap-6 bg-card border border-border p-6 rounded-xl shadow-sm">
               {/* Album Art (Large) */}
               <div className="w-40 h-40 md:w-48 md:h-48 rounded-xl overflow-hidden shadow-md border border-border/60 shrink-0 bg-secondary">
                 {renderAlbumArtwork(activeAlbumGroup)}
@@ -1034,8 +1034,8 @@ export const LibraryMosaic: React.FC<LibraryMosaicProps> = ({
                           <span
                             className={`text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded ${
                               track.format === 'flac'
-                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                                : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                ? 'bg-success/15 text-success'
+                                : 'bg-warning/15 text-warning'
                             }`}
                           >
                             {track.format}
